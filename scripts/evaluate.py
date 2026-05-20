@@ -36,6 +36,7 @@ from src.evaluation import (
 )
 from src.models import build_model
 from src.training import load_checkpoint
+from src.utils import set_seed
 from src.xai import (
     compute_attention_rollout,
     compute_cam_batch,
@@ -104,6 +105,7 @@ def main() -> None:
     with open(args.xai_config) as f:
         xai_cfg = yaml.safe_load(f)
 
+    set_seed(cfg["training"]["seed"])
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model_name: str = args.model
     methods: list[str] = xai_cfg["methods"].get(model_name, [])

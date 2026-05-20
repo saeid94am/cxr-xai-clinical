@@ -25,9 +25,16 @@ env/
 data/
 !data/.gitkeep
 
-# Model checkpoints
+# Model checkpoints (large binary files — link from HuggingFace Hub instead)
 results/checkpoints/
 !results/checkpoints/.gitkeep
+
+# All generated outputs — regenerate with run_experiments.sh
+results/figures/
+!results/figures/.gitkeep
+results/metrics/
+!results/metrics/.gitkeep
+!results/metrics/wandb_runs.txt
 
 # WandB
 wandb/
@@ -48,6 +55,9 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Ruff
+.ruff_cache/
 
 # Coverage
 .coverage

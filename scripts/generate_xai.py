@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.data import NIH14_CLASSES, NIH14Dataset, val_transforms
 from src.models import build_model
 from src.training import load_checkpoint
+from src.utils import set_seed
 from src.xai import (
     compute_attention_rollout,
     compute_cam_batch,
@@ -93,6 +94,7 @@ def main() -> None:
     with open(args.xai_config) as f:
         xai_cfg = yaml.safe_load(f)
 
+    set_seed(cfg["training"]["seed"])
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model_name: str = args.model
     figures_dir = Path(cfg["figures_dir"])

@@ -8,11 +8,9 @@ Usage:
 """
 
 import argparse
-import random
 import sys
 from pathlib import Path
 
-import numpy as np
 import torch
 import yaml
 
@@ -22,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.data import build_nih14_loaders
 from src.models import build_model, get_layerwise_param_groups
 from src.training import Trainer, WandBLogger, build_loss
+from src.utils import set_seed
 
 
 def parse_args() -> argparse.Namespace:
@@ -39,14 +38,6 @@ def parse_args() -> argparse.Namespace:
         help="Apply torch.compile() to the model (PyTorch 2.x, CUDA only, training speed-up ~10-20%%)",
     )
     return p.parse_args()
-
-
-def set_seed(seed: int) -> None:
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
 
 
 def main() -> None:
