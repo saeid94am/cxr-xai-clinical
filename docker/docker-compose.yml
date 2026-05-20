@@ -3,33 +3,26 @@ version: "3.9"
 # ─────────────────────────────────────────────────────────────────────────────
 #  CXR-XAI-Clinical — Docker Compose
 #
-#  Services:
-#    train   — GPU training (DenseNet-121 or ViT); run once per experiment
-#    evaluate — CPU XAI evaluation after training
-#    demo    — Streamlit demo on port 8501
-#
-#  Usage:
-#    docker-compose up train               # full DenseNet-121 run
-#    docker-compose run train \
-#      --model vit_base_patch16_224        # ViT run
-#    docker-compose run train --debug      # 20K-image debug run
-#    docker-compose up demo                # launch Streamlit
-#    docker-compose run evaluate \
+#  Run from the repo root:
+#    docker compose -f docker/docker-compose.yml up train
+#    docker compose -f docker/docker-compose.yml up demo
+#    docker compose -f docker/docker-compose.yml run evaluate \
 #      --checkpoint results/checkpoints/best_densenet121.pt \
 #      --model densenet121
 # ─────────────────────────────────────────────────────────────────────────────
 
 x-common-volumes: &common-volumes
-  - ./data:/workspace/data:ro          # data read-only inside container
-  - ./results:/workspace/results       # results written back to host
-  - ./configs:/workspace/configs:ro
+  - ../data:/workspace/data:ro          # data read-only inside container
+  - ../results:/workspace/results       # results written back to host
+  - ../configs:/workspace/configs:ro
 
 services:
 
   # ── GPU training ─────────────────────────────────────────────────────────
   train:
     build:
-      context: .
+      context: ..                        # repo root = build context
+      dockerfile: docker/Dockerfile
       target: train
     image: cxr-xai:train
     volumes: *common-volumes
@@ -44,13 +37,14 @@ services:
               count: 1
               capabilities: [gpu]
     command: ["--config", "configs/train.yaml", "--model", "densenet121"]
-    shm_size: "8gb"    # shared memory for DataLoader workers
+    shm_size: "8gb"
 
   # ── XAI evaluation (CPU) ─────────────────────────────────────────────────
   evaluate:
     build:
-      context: .
-      target: demo     # reuse CPU image
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: demo
     image: cxr-xai:demo
     volumes: *common-volumes
     entrypoint: ["python", "scripts/evaluate.py"]
@@ -67,7 +61,8 @@ services:
   # ── Streamlit demo ───────────────────────────────────────────────────────
   demo:
     build:
-      context: .
+      context: ..
+      dockerfile: docker/Dockerfile
       target: demo
     image: cxr-xai:demo
     volumes: *common-volumes

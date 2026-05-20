@@ -68,4 +68,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build demo image (CPU, no GPU needed)
-        run: docker build --target demo -t cxr-xai:ci .
+        run: docker build -f docker/Dockerfile --target demo -t cxr-xai:ci .
