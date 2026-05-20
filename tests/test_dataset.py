@@ -13,14 +13,13 @@ import pytest
 import torch
 from PIL import Image
 
-from src.data import (
+from src.data.dataset import (
     CHEXPERT_EVAL_CLASSES,
     NIH14_CLASSES,
     CheXpertValDataset,
     NIH14Dataset,
-    train_transforms,
-    val_transforms,
 )
+from src.data.transforms import train_transforms, val_transforms
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

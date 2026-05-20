@@ -10,19 +10,14 @@ import numpy as np
 import pytest
 import torch
 
-from src.evaluation import (
-    compute_deletion_insertion,
-    compute_road,
-    compute_sanity_check,
-    compute_spearman_stability,
-)
+from src.evaluation.deletion_insertion import compute_deletion_insertion
 from src.evaluation.pointing_game import pointing_game_hit
-from src.models import build_model
-from src.xai import (
-    compute_attention_rollout,
-    compute_cam_batch,
-    compute_integrated_gradients,
-)
+from src.evaluation.road import compute_road
+from src.evaluation.stability_sanity import compute_sanity_check, compute_spearman_stability
+from src.models.classifier import build_model
+from src.xai.attention_rollout import compute_attention_rollout
+from src.xai.gradcam_methods import compute_cam_batch
+from src.xai.integrated_gradients import compute_integrated_gradients
 
 # ── Shared fixtures ───────────────────────────────────────────────────────────
 

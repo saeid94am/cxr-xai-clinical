@@ -9,7 +9,8 @@ parameter group structure.
 import pytest
 import torch
 
-from src.models import CXRClassifier, build_model, get_layerwise_param_groups
+from src.models.classifier import CXRClassifier, build_model
+from src.models.lr_decay import get_layerwise_param_groups
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
