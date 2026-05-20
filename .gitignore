@@ -22,7 +22,7 @@ env/
 *.ipynb
 
 # Data — never commit raw images or large CSVs
-data/
+/data/
 !data/.gitkeep
 
 # Model checkpoints (large binary files — link from HuggingFace Hub instead)
