@@ -138,7 +138,8 @@ def compute_deletion_insertion(
         )
 
     # AUC via trapezoidal rule over the fraction axis
-    deletion_auc = np.trapz(del_scores, fractions, axis=0)  # (B,)
-    insertion_auc = np.trapz(ins_scores, fractions, axis=0)  # (B,)
+    _trapz = getattr(np, "trapezoid", np.trapz)  # trapz removed in NumPy 2.0
+    deletion_auc = _trapz(del_scores, fractions, axis=0)  # (B,)
+    insertion_auc = _trapz(ins_scores, fractions, axis=0)  # (B,)
 
     return deletion_auc, insertion_auc
