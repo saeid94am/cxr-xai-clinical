@@ -23,29 +23,53 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install CPU-only PyTorch + dependencies
+      - name: Install dependencies
         id: install
         run: |
           pip install --upgrade pip
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
-          pip install -e . --config-settings editable_mode=compat
           python -c "import pandas, PIL, torch, torchvision, timm; print('core deps OK')"
+
+      - name: Verify src imports
+        if: always() && steps.install.conclusion == 'success'
+        run: |
+          python - <<'EOF'
+          import sys, importlib.util
+          print("sys.path:", sys.path)
+          for name in ("src", "src.data", "src.data.dataset", "src.data.transforms",
+                       "src.models", "src.models.classifier"):
+              try:
+                  spec = importlib.util.find_spec(name)
+                  print(f"  find_spec({name!r}): {spec}")
+              except Exception as e:
+                  print(f"  find_spec({name!r}): ERROR {e}")
+          import traceback
+          for name in ("src.data", "src.models"):
+              try:
+                  __import__(name)
+                  print(f"  import {name}: OK")
+              except Exception:
+                  print(f"  import {name}: FAILED")
+                  traceback.print_exc()
+          EOF
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Run dataset tests
         if: always() && steps.install.conclusion == 'success'
-        run: pytest tests/test_dataset.py
+        run: python -m pytest tests/test_dataset.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Run model tests
         if: always() && steps.install.conclusion == 'success'
-        run: pytest tests/test_models.py
+        run: python -m pytest tests/test_models.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Run XAI tests
         if: always() && steps.install.conclusion == 'success'
-        run: pytest tests/test_xai.py
+        run: python -m pytest tests/test_xai.py
         env:
           PYTHONPATH: ${{ github.workspace }}
