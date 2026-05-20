@@ -28,9 +28,9 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          pip freeze | grep -E '^(torch|torchvision)==' > /tmp/torch-pin.txt
-          pip install -r requirements.txt -c /tmp/torch-pin.txt
+          pip install -r requirements.txt
           pip install -e . --config-settings editable_mode=compat
+          python -c "import pandas, PIL, torch, torchvision, timm; print('core deps OK')"
 
       - name: Run dataset tests
         if: always() && steps.install.conclusion == 'success'
