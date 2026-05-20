@@ -1,9 +1,7 @@
 import torchvision.transforms as T
 
-
-# ImageNet statistics (used because all models are ImageNet pre-trained)
 _MEAN = [0.485, 0.456, 0.406]
-_STD  = [0.229, 0.224, 0.225]
+_STD = [0.229, 0.224, 0.225]
 
 
 def train_transforms(img_size: int = 224) -> T.Compose:

@@ -5,7 +5,6 @@ NIH-14 canonical label order matches configs/train.yaml `nih14_classes`.
 All datasets return (image_tensor, label_tensor, image_path) for traceability.
 """
 
-import os
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
@@ -13,7 +12,7 @@ import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
+from torch.utils.data import DataLoader, Dataset
 
 
 # ── NIH ChestX-ray14 label columns (canonical order) ─────────────────────────
