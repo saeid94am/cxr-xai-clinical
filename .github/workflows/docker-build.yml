@@ -1,0 +1,16 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build demo image (CPU, no GPU needed)
+        run: docker build -f docker/Dockerfile --target demo -t cxr-xai:ci .

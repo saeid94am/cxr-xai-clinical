@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+type: software
+title: "CXR-XAI-Clinical: Explainable AI for Chest X-Ray Pathology Classification"
+authors:
+  - family-names: Amini
+    given-names: Saeed
+    email: saeed.amiinii@gmail.com
+repository-code: "https://github.com/saeed-amini/cxr-xai-clinical"
+license: MIT
+version: 0.1.0
+date-released: "2026-05-20"
+keywords:
+  - chest x-ray
+  - explainable AI
+  - XAI
+  - Grad-CAM
+  - integrated gradients
+  - attention rollout
+  - medical imaging
+  - deep learning
+  - DenseNet
+  - Vision Transformer
+abstract: >
+  A reproducible PyTorch framework for multi-label chest X-ray pathology
+  classification (NIH ChestX-ray14, 14 classes) with clinical-grade
+  explainability. Implements Grad-CAM++, HiResCAM, Integrated Gradients,
+  and Attention Rollout, evaluated with pointing game, deletion/insertion
+  AUC, Spearman stability, cascading sanity check, and ROAD faithfulness.
+  Supports DenseNet-121 and ViT-Base/16 via timm with layer-wise LR decay,
+  mixed-precision training, WandB logging, and Docker deployment.
