@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────
+#  CXR-XAI-Clinical  —  XAI Configuration
+# ─────────────────────────────────────────────
+
+# ── XAI methods to run ────────────────────────
+methods:
+  densenet121:
+    - gradcam_plus_plus
+    - hirescam
+  vit_base_patch16_224:
+    - integrated_gradients
+    - attention_rollout
+
+# ── Integrated Gradients settings ────────────
+integrated_gradients:
+  n_steps: 50
+  baseline: "zero"        # zero | gaussian
+
+# ── Pointing Game ─────────────────────────────
+pointing_game:
+  tolerance_px: 0         # exact hit required (can relax to 15 for localization tolerance)
+
+# ── Deletion / Insertion AUC ──────────────────
+deletion_insertion:
+  n_steps: 100
+  batch_size: 8
+
+# ── Spearman stability ────────────────────────
+stability:
+  noise_std: 0.1
+  n_runs: 3
+
+# ── Cascading randomization (sanity check) ────
+sanity_check:
+  n_random_layers: -1     # -1 = all layers (full cascading)
+
+# ── ROAD faithfulness ─────────────────────────
+road:
+  percentages: [10, 20, 30, 40, 50, 60, 70, 80, 90]
+  noise_tunnel: false
+
+# ── Output ────────────────────────────────────
+output:
+  save_heatmaps: true
+  heatmap_format: "png"
+  overlay_alpha: 0.4

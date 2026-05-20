@@ -1,0 +1,105 @@
+# ─────────────────────────────────────────────
+#  CXR-XAI-Clinical  —  Training Configuration
+# ─────────────────────────────────────────────
+
+# ── Debug / fast-iteration mode ──────────────
+debug_mode: false          # true  → 20 K-image NIH-14 subsample, 2 epochs
+debug_subset_size: 20000
+debug_epochs: 2
+
+# ── Paths ────────────────────────────────────
+data:
+  nih14_root: "data/NIH-ChestX-ray14"
+  nih14_images: "data/NIH-ChestX-ray14/images"
+  nih14_labels: "data/NIH-ChestX-ray14/Data_Entry_2017.csv"
+  nih14_bbox:   "data/NIH-ChestX-ray14/BBox_List_2017.csv"
+  nih14_train_val_list: "data/NIH-ChestX-ray14/train_val_list.txt"
+  nih14_test_list:      "data/NIH-ChestX-ray14/test_list.txt"
+
+  chexpert_root: "data/CheXpert"
+  chexpert_valid_csv: "data/CheXpert/valid.csv"
+
+  rsna_root: "data/RSNA-Pneumonia"
+  rsna_labels: "data/RSNA-Pneumonia/stage_2_train_labels.csv"
+
+results_dir: "results"
+checkpoint_dir: "results/checkpoints"
+metrics_dir:    "results/metrics"
+figures_dir:    "results/figures"
+
+# ── WandB ─────────────────────────────────────
+wandb:
+  enabled: true
+  project: "cxr-xai-clinical"
+  entity: null            # set to your WandB username/team
+  tags: ["phase2", "nih14"]
+  log_interval: 50        # log every N batches
+
+# ── Model ─────────────────────────────────────
+model:
+  name: "densenet121"     # densenet121 | vit_base_patch16_224
+  pretrained: true
+  num_classes: 14
+  dropout: 0.0
+
+# ── Training ──────────────────────────────────
+training:
+  seed: 42
+  epochs: 30
+  early_stopping_patience: 5
+  early_stopping_metric: "val_auroc_macro"
+
+  # Batch sizes: Kaggle (16 GB) vs local RTX 3050 (4 GB)
+  batch_size: 32           # DenseNet on Kaggle; set 16 for local / 8 for ViT local
+  num_workers: 4
+  pin_memory: true
+
+  # Optimizer
+  optimizer: "adamw"
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+
+  # LR schedule
+  scheduler: "cosine_warm_restarts"
+  T_0: 10                  # CosineAnnealingWarmRestarts period
+
+  # Layer-wise LR decay (outer layers → inner layers)
+  layerwise_lr_decay: 0.9
+
+  # Mixed precision
+  mixed_precision: true
+
+  # Loss
+  loss: "bce_with_logits"
+  use_pos_weight: true     # compute per-class positive weights from training set
+
+# ── Input resolution ──────────────────────────
+input:
+  train_size: 224
+  val_size: 224
+  resize: 256              # resize before center-crop for val/test
+
+# ── NIH-14 pathology labels (canonical order) ─
+nih14_classes:
+  - Atelectasis
+  - Cardiomegaly
+  - Effusion
+  - Infiltration
+  - Mass
+  - Nodule
+  - Pneumonia
+  - Pneumothorax
+  - Consolidation
+  - Edema
+  - Emphysema
+  - Fibrosis
+  - Pleural_Thickening
+  - Hernia
+
+# ── CheXpert 5-class subset for cross-dataset eval ──
+chexpert_eval_classes:
+  - Atelectasis
+  - Cardiomegaly
+  - Consolidation
+  - Edema
+  - Pleural Effusion
