@@ -69,6 +69,11 @@ training:
   # Mixed precision
   mixed_precision: true
 
+  # torch.compile() (PyTorch 2.x) — speeds up training ~10-20% on CUDA;
+  # disabled by default because it adds JIT overhead on short runs and is
+  # incompatible with Grad-CAM hooks (use only for training, not XAI scripts).
+  compile: false
+
   # Loss
   loss: "bce_with_logits"
   use_pos_weight: true     # compute per-class positive weights from training set

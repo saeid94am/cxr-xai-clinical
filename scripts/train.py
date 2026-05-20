@@ -33,6 +33,11 @@ def parse_args() -> argparse.Namespace:
         help="Override model name from config (densenet121 | vit_base_patch16_224)",
     )
     p.add_argument("--debug", action="store_true", help="Enable debug_mode: 20 K subset, 2 epochs")
+    p.add_argument(
+        "--compile",
+        action="store_true",
+        help="Apply torch.compile() to the model (PyTorch 2.x, CUDA only, training speed-up ~10-20%%)",
+    )
     return p.parse_args()
 
 
@@ -90,6 +95,15 @@ def main() -> None:
         pretrained=cfg["model"]["pretrained"],
         dropout=cfg["model"]["dropout"],
     ).to(device)
+
+    # ── torch.compile (PyTorch 2.x) ───────────────────────────────────────────
+    use_compile = args.compile or cfg["training"].get("compile", False)
+    if use_compile:
+        if not hasattr(torch, "compile"):
+            print("[train] torch.compile not available (requires PyTorch >= 2.0); skipping.")
+        else:
+            print("[train] Compiling model with torch.compile() ...")
+            model = torch.compile(model)
 
     # ── Optimizer + scheduler ─────────────────────────────────────────────────
     param_groups = get_layerwise_param_groups(

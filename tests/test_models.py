@@ -141,3 +141,27 @@ def test_param_groups_weight_decay(densenet):
     groups = get_layerwise_param_groups(densenet, base_lr=1e-4, weight_decay=1e-5)
     for g in groups:
         assert g["weight_decay"] == pytest.approx(1e-5)
+
+
+# ── torch.compile (PyTorch 2.x) ───────────────────────────────────────────────
+
+
+@pytest.mark.skipif(not hasattr(torch, "compile"), reason="requires PyTorch >= 2.0")
+def test_torch_compile_densenet_forward(dummy_batch):
+    """torch.compile() must not crash and must produce the correct output shape."""
+    model = build_model("densenet121", num_classes=14, pretrained=False)
+    compiled = torch.compile(model)
+    compiled.eval()
+    with torch.no_grad():
+        out = compiled(dummy_batch)
+    assert out.shape == (2, 14)
+
+
+@pytest.mark.skipif(not hasattr(torch, "compile"), reason="requires PyTorch >= 2.0")
+def test_torch_compile_vit_forward(dummy_batch):
+    model = build_model("vit_base_patch16_224", num_classes=14, pretrained=False)
+    compiled = torch.compile(model)
+    compiled.eval()
+    with torch.no_grad():
+        out = compiled(dummy_batch)
+    assert out.shape == (2, 14)
