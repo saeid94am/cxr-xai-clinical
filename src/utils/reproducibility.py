@@ -22,6 +22,6 @@ def set_seed(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)          # multi-GPU
+    torch.cuda.manual_seed_all(seed)  # multi-GPU
     torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False    # benchmark=True breaks determinism
+    torch.backends.cudnn.benchmark = False  # benchmark=True breaks determinism
