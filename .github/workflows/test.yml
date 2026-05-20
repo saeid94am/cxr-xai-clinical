@@ -30,6 +30,21 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
 
+      - name: Debug package imports
+        run: |
+          python - <<'EOF'
+          import sys, traceback
+          print("Python:", sys.version)
+          print("sys.path:", sys.path[:6])
+          for pkg in ("src", "src.data", "src.models", "src.training", "src.xai", "src.evaluation", "src.utils"):
+              try:
+                  m = __import__(pkg)
+                  print(f"OK  {pkg}: {getattr(m, '__file__', '<namespace>')}")
+              except Exception as exc:
+                  print(f"FAIL {pkg}: {exc!r}")
+                  traceback.print_exc()
+          EOF
+
       - name: Run dataset tests
         run: pytest tests/test_dataset.py
 
