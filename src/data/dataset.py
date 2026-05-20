@@ -16,14 +16,29 @@ from torch.utils.data import DataLoader, Dataset
 
 # ── NIH ChestX-ray14 label columns (canonical order) ─────────────────────────
 NIH14_CLASSES: List[str] = [
-    "Atelectasis", "Cardiomegaly", "Effusion", "Infiltration", "Mass",
-    "Nodule", "Pneumonia", "Pneumothorax", "Consolidation", "Edema",
-    "Emphysema", "Fibrosis", "Pleural_Thickening", "Hernia",
+    "Atelectasis",
+    "Cardiomegaly",
+    "Effusion",
+    "Infiltration",
+    "Mass",
+    "Nodule",
+    "Pneumonia",
+    "Pneumothorax",
+    "Consolidation",
+    "Edema",
+    "Emphysema",
+    "Fibrosis",
+    "Pleural_Thickening",
+    "Hernia",
 ]
 
 # ── CheXpert 5-class eval subset ──────────────────────────────────────────────
 CHEXPERT_EVAL_CLASSES: List[str] = [
-    "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Pleural Effusion",
+    "Atelectasis",
+    "Cardiomegaly",
+    "Consolidation",
+    "Edema",
+    "Pleural Effusion",
 ]
 
 
@@ -185,7 +200,9 @@ class RSNAPneumoniaDataset(Dataset):
             try:
                 import pydicom
             except ImportError as e:
-                raise ImportError("pydicom is required for DICOM loading. pip install pydicom") from e
+                raise ImportError(
+                    "pydicom is required for DICOM loading. pip install pydicom"
+                ) from e
             img_path = self.image_dir / f"{pid}.dcm"
             dcm = pydicom.dcmread(str(img_path))
             arr = dcm.pixel_array.astype(np.float32)
@@ -204,6 +221,7 @@ class RSNAPneumoniaDataset(Dataset):
 
 # ── DataLoader factory ────────────────────────────────────────────────────────
 
+
 def build_nih14_loaders(
     image_dir: str,
     labels_csv: str,
@@ -219,9 +237,12 @@ def build_nih14_loaders(
     from .transforms import train_transforms, val_transforms
 
     train_ds = NIH14Dataset(
-        image_dir, labels_csv, train_val_list,
+        image_dir,
+        labels_csv,
+        train_val_list,
         transform=train_transforms(img_size),
-        subset_n=debug_n, seed=seed,
+        subset_n=debug_n,
+        seed=seed,
     )
     # Use the same split file for val — NIH-14 provides a single train+val file;
     # we do an 80/20 random split internally here.
@@ -233,27 +254,41 @@ def build_nih14_loaders(
 
     train_subset = torch.utils.data.Subset(train_ds, train_idx)
     val_ds_full = NIH14Dataset(
-        image_dir, labels_csv, train_val_list,
+        image_dir,
+        labels_csv,
+        train_val_list,
         transform=val_transforms(img_size),
-        subset_n=debug_n, seed=seed,
+        subset_n=debug_n,
+        seed=seed,
     )
     val_subset = torch.utils.data.Subset(val_ds_full, val_idx)
 
     test_ds = NIH14Dataset(
-        image_dir, labels_csv, test_list,
+        image_dir,
+        labels_csv,
+        test_list,
         transform=val_transforms(img_size),
     )
 
     train_loader = DataLoader(
-        train_subset, batch_size=batch_size, shuffle=True,
-        num_workers=num_workers, pin_memory=True,
+        train_subset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
     )
     val_loader = DataLoader(
-        val_subset, batch_size=batch_size, shuffle=False,
-        num_workers=num_workers, pin_memory=True,
+        val_subset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
     )
     test_loader = DataLoader(
-        test_ds, batch_size=batch_size, shuffle=False,
-        num_workers=num_workers, pin_memory=True,
+        test_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
     )
     return train_loader, val_loader, test_loader
