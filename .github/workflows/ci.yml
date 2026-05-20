@@ -7,8 +7,30 @@ on:
     branches: [main]
 
 jobs:
+  # ── 1. Lint ────────────────────────────────────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+  # ── 2. Tests ───────────────────────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
+    needs: lint          # only run tests if lint passes
     strategy:
       fail-fast: false
       matrix:
@@ -37,3 +59,13 @@ jobs:
 
       - name: Run XAI tests
         run: pytest tests/test_xai.py -v --tb=short
+
+  # ── 3. Docker build smoke test ────────────────────────────────────────────
+  docker:
+    runs-on: ubuntu-latest
+    needs: lint          # skip expensive build if lint already failed
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build demo image (CPU, no GPU needed)
+        run: docker build --target demo -t cxr-xai:ci .

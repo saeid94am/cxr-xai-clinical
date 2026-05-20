@@ -27,6 +27,7 @@ seaborn>=0.12.0
 streamlit>=1.29.0
 opencv-python>=4.8.0
 
-# Testing
+# Testing / linting
 pytest>=7.4.0
 pytest-cov>=4.1.0
+ruff>=0.4.0
