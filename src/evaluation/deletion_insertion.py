@@ -13,7 +13,7 @@ Both metrics sweep k = [0%, 10%, 20%, ..., 100%] of pixels (n_steps=10 by
 default; configurable). The AUC is the area under the score-vs-k curve,
 computed with the trapezoidal rule.
 
-Implementation is custom (not pytorch-grad-cam's built-in) so we have full
+Implementation is custom (not grad-cam's built-in) so we have full
 control over the baseline and can run on 4 GB VRAM with small batch sizes.
 """
 

@@ -13,7 +13,7 @@ dependencies:
   - pytorch::pytorch-cuda=12.1
   - pip:
       - timm>=0.9.12
-      - pytorch-grad-cam>=1.5.0
+      - grad-cam>=1.5.0
       - captum>=0.7.0
       - quantus>=0.5.0
       - numpy>=1.24.0

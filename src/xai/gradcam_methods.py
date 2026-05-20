@@ -1,7 +1,7 @@
 """
 Grad-CAM++ and HiResCAM for DenseNet-121 (CNN backbone).
 
-Both methods use pytorch-grad-cam. The target layer is the last conv layer
+Both methods use grad-cam (PyPI: grad-cam). The target layer is the last conv layer
 of DenseNet-121: backbone.features.denseblock4 (last dense layer inside it).
 
 Grad-CAM++: weights each pixel's gradient contribution per-class; sharper

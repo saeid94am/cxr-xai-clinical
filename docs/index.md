@@ -11,7 +11,7 @@ evaluated across six quantitative faithfulness and stability metrics.
 - **PyTorch + timm** for 2D classification and XAI — chosen over MONAI because
   2D classification does not need MONAI's volumetric pipeline, and full gradient
   access is required for Grad-CAM++ and HiResCAM.
-- **pytorch-grad-cam** for CAM methods, **captum** for Integrated Gradients,
+- **grad-cam** for CAM methods, **captum** for Integrated Gradients,
   **quantus** for ROAD faithfulness metric.
 
 ## Quick start
