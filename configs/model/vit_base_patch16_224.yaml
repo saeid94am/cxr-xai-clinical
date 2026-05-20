@@ -1,0 +1,21 @@
+# ViT-Base/16 model configuration
+# Framework: PyTorch + timm
+# Rationale: attention-based backbone enables Attention Rollout XAI; full gradient
+#            access supports Integrated Gradients without library constraints.
+
+name: vit_base_patch16_224
+pretrained: true
+num_classes: 14
+dropout: 0.0
+
+# Layer-wise LR decay groups (head → blocks[11] → ... → patch_embed)
+layerwise_lr_decay: 0.9
+
+# Attention Rollout settings
+attention_rollout:
+  discard_ratio: 0.9
+
+# Recommended batch sizes by VRAM
+batch_size_16gb: 32
+batch_size_8gb: 16
+batch_size_4gb: 8

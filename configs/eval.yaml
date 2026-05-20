@@ -1,0 +1,88 @@
+# ─────────────────────────────────────────────
+#  CXR-XAI-Clinical  —  Evaluation Configuration
+# ─────────────────────────────────────────────
+
+# ── Paths (override at runtime with --config) ─
+data:
+  nih14_root: "data/NIH-ChestX-ray14"
+  nih14_images: "data/NIH-ChestX-ray14/images"
+  nih14_labels: "data/NIH-ChestX-ray14/Data_Entry_2017.csv"
+  nih14_bbox:   "data/NIH-ChestX-ray14/BBox_List_2017.csv"
+  nih14_test_list: "data/NIH-ChestX-ray14/test_list.txt"
+
+results_dir: "results"
+checkpoint_dir: "results/checkpoints"
+metrics_dir:    "results/metrics"
+figures_dir:    "results/figures"
+
+# ── Model ─────────────────────────────────────
+model:
+  name: "densenet121"     # densenet121 | vit_base_patch16_224
+  num_classes: 14
+
+# ── Evaluation settings ───────────────────────
+evaluation:
+  batch_size: 64
+  num_workers: 4
+  pin_memory: true
+
+  # Classification threshold for F1/precision/recall (AUROC is threshold-free)
+  threshold: 0.5
+
+  # Which checkpoint to load; null = auto-detect best_<model>.pt
+  checkpoint: null
+
+# ── XAI settings for evaluate.py ─────────────
+xai:
+  methods:
+    densenet121: ["gradcam_pp", "hirescam", "integrated_gradients"]
+    vit_base_patch16_224: ["attention_rollout", "integrated_gradients"]
+
+  # Integrated Gradients
+  ig:
+    n_steps: 50
+    baseline: "gaussian"    # gaussian | black | white
+
+  # Pointing game (requires BBox_List_2017.csv)
+  pointing_game:
+    enabled: true
+    tolerance: 15           # pixels at 224×224 resolution
+
+  # Deletion / insertion
+  deletion_insertion:
+    n_steps: 100
+    baseline: "blur"        # blur | black
+
+  # Spearman stability
+  stability:
+    noise_std: 0.05
+    n_runs: 3
+
+  # ROAD faithfulness (quantus)
+  road:
+    percentages: [10, 20, 30, 40, 50, 60, 70, 80, 90]
+
+# ── NIH-14 pathology labels (canonical order) ─
+nih14_classes:
+  - Atelectasis
+  - Cardiomegaly
+  - Effusion
+  - Infiltration
+  - Mass
+  - Nodule
+  - Pneumonia
+  - Pneumothorax
+  - Consolidation
+  - Edema
+  - Emphysema
+  - Fibrosis
+  - Pleural_Thickening
+  - Hernia
+
+# ── CheXpert 5-class subset ───────────────────
+chexpert_eval_classes:
+  - Atelectasis
+  - Cardiomegaly
+  - Consolidation
+  - Edema
+  - Pleural Effusion

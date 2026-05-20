@@ -1,0 +1,20 @@
+# DenseNet-121 model configuration
+# Framework: PyTorch + timm
+# Rationale: standard CheXNet architecture for 2D CXR classification; full gradient
+#            access needed for Grad-CAM++ and HiResCAM XAI methods.
+
+name: densenet121
+pretrained: true
+num_classes: 14
+dropout: 0.0
+
+# Layer-wise LR decay groups (outer → inner, decay factor per group)
+layerwise_lr_decay: 0.9
+
+# Grad-CAM target layer
+gradcam_target_layer: "features.denseblock4"
+
+# Recommended batch sizes by VRAM
+batch_size_16gb: 64
+batch_size_8gb: 32
+batch_size_4gb: 16
