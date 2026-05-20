@@ -107,7 +107,7 @@ class AttentionRollout:
         for attn in attentions:
             # Fuse heads
             if self.head_fusion == "mean":
-                fused = attn.mean(dim=1)   # (B, N, N)
+                fused = attn.mean(dim=1)  # (B, N, N)
             elif self.head_fusion == "max":
                 fused = attn.max(dim=1).values
             else:
@@ -116,7 +116,7 @@ class AttentionRollout:
             # Discard lowest attention weights (noise reduction)
             flat = fused.view(B, -1)
             threshold = torch.quantile(flat, self.discard_ratio, dim=1, keepdim=True)
-            threshold = threshold.unsqueeze(-1)   # (B, 1, 1)
+            threshold = threshold.unsqueeze(-1)  # (B, 1, 1)
             fused = torch.where(fused >= threshold, fused, torch.zeros_like(fused))
 
             # Add residual and normalise rows
@@ -155,7 +155,7 @@ class AttentionRollout:
         rolled = self._rollout(self._attention_maps)  # (B, N+1, N+1) incl. CLS
 
         # CLS token is index 0; its attention to all patch tokens is row 0
-        cls_attention = rolled[:, 0, 1:]   # (B, num_patches)
+        cls_attention = rolled[:, 0, 1:]  # (B, num_patches)
 
         # Reshape to spatial grid: ViT-Base/16 at 224px → 14×14 patches
         grid_size = int(cls_attention.shape[1] ** 0.5)

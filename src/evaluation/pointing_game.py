@@ -18,8 +18,7 @@ BBox_List_2017.csv columns:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -54,8 +53,10 @@ def load_bbox_df(bbox_csv: str) -> pd.DataFrame:
                 r"(\d+\.?\d*),\s*(\d+\.?\d*),\s*(\d+\.?\d*),\s*(\d+\.?\d*)"
             )
             df["x"], df["y"], df["w"], df["h"] = (
-                parts[0].astype(float), parts[1].astype(float),
-                parts[2].astype(float), parts[3].astype(float),
+                parts[0].astype(float),
+                parts[1].astype(float),
+                parts[2].astype(float),
+                parts[3].astype(float),
             )
 
     df[["x", "y", "w", "h"]] = df[["x", "y", "w", "h"]].astype(float)
@@ -63,7 +64,10 @@ def load_bbox_df(bbox_csv: str) -> pd.DataFrame:
 
 
 def _scale_bbox(
-    x: float, y: float, w: float, h: float,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
     orig_size: int = 1024,
     target_size: int = 224,
 ) -> Tuple[int, int, int, int]:
@@ -136,29 +140,37 @@ def compute_pointing_game(
             continue
 
         heatmap = heatmaps[fname][label]
-        bbox = _scale_bbox(row["x"], row["y"], row["w"], row["h"],
-                           orig_size=1024, target_size=img_size)
+        bbox = _scale_bbox(
+            row["x"], row["y"], row["w"], row["h"], orig_size=1024, target_size=img_size
+        )
         hit = pointing_game_hit(heatmap, bbox, tolerance_px)
 
         if label not in results:
             results[label] = {"hits": 0, "total": 0}
-        results[label]["hits"]  += int(hit)
+        results[label]["hits"] += int(hit)
         results[label]["total"] += 1
 
     rows = []
     for label, counts in results.items():
         acc = counts["hits"] / counts["total"] if counts["total"] > 0 else float("nan")
-        rows.append({"label": label, "hits": counts["hits"],
-                     "total": counts["total"], "accuracy": acc})
+        rows.append(
+            {"label": label, "hits": counts["hits"], "total": counts["total"], "accuracy": acc}
+        )
 
     df = pd.DataFrame(rows).sort_values("label").reset_index(drop=True)
 
     if not df.empty:
         overall_acc = df["hits"].sum() / df["total"].sum()
-        overall_row = pd.DataFrame([{
-            "label": "OVERALL", "hits": df["hits"].sum(),
-            "total": df["total"].sum(), "accuracy": overall_acc,
-        }])
+        overall_row = pd.DataFrame(
+            [
+                {
+                    "label": "OVERALL",
+                    "hits": df["hits"].sum(),
+                    "total": df["total"].sum(),
+                    "accuracy": overall_acc,
+                }
+            ]
+        )
         df = pd.concat([df, overall_row], ignore_index=True)
 
     return df

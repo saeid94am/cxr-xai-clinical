@@ -15,7 +15,7 @@ Both return a (H, W) numpy array in [0, 1] for a single image and class.
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import torch

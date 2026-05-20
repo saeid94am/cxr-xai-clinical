@@ -27,10 +27,12 @@ from src.training import Trainer, WandBLogger, build_loss
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train CXR classifier")
     p.add_argument("--config", default="configs/train.yaml")
-    p.add_argument("--model", default=None,
-                   help="Override model name from config (densenet121 | vit_base_patch16_224)")
-    p.add_argument("--debug", action="store_true",
-                   help="Enable debug_mode: 20 K subset, 2 epochs")
+    p.add_argument(
+        "--model",
+        default=None,
+        help="Override model name from config (densenet121 | vit_base_patch16_224)",
+    )
+    p.add_argument("--debug", action="store_true", help="Enable debug_mode: 20 K subset, 2 epochs")
     return p.parse_args()
 
 
@@ -67,34 +69,34 @@ def main() -> None:
 
     # ── Data ─────────────────────────────────────────────────────────────────
     subset_n = cfg["debug_subset_size"] if debug else None
-    epochs   = cfg["debug_epochs"]      if debug else cfg["training"]["epochs"]
+    epochs = cfg["debug_epochs"] if debug else cfg["training"]["epochs"]
 
     train_loader, val_loader, _ = build_nih14_loaders(
-        image_dir      = cfg["data"]["nih14_images"],
-        labels_csv     = cfg["data"]["nih14_labels"],
-        train_val_list = cfg["data"]["nih14_train_val_list"],
-        test_list      = cfg["data"]["nih14_test_list"],
-        batch_size     = cfg["training"]["batch_size"],
-        num_workers    = cfg["training"]["num_workers"],
-        img_size       = cfg["input"]["train_size"],
-        debug_n        = subset_n,
-        seed           = seed,
+        image_dir=cfg["data"]["nih14_images"],
+        labels_csv=cfg["data"]["nih14_labels"],
+        train_val_list=cfg["data"]["nih14_train_val_list"],
+        test_list=cfg["data"]["nih14_test_list"],
+        batch_size=cfg["training"]["batch_size"],
+        num_workers=cfg["training"]["num_workers"],
+        img_size=cfg["input"]["train_size"],
+        debug_n=subset_n,
+        seed=seed,
     )
 
     # ── Model ─────────────────────────────────────────────────────────────────
     model = build_model(
-        name        = model_name,
-        num_classes = cfg["model"]["num_classes"],
-        pretrained  = cfg["model"]["pretrained"],
-        dropout     = cfg["model"]["dropout"],
+        name=model_name,
+        num_classes=cfg["model"]["num_classes"],
+        pretrained=cfg["model"]["pretrained"],
+        dropout=cfg["model"]["dropout"],
     ).to(device)
 
     # ── Optimizer + scheduler ─────────────────────────────────────────────────
     param_groups = get_layerwise_param_groups(
         model,
-        base_lr      = cfg["training"]["lr"],
-        decay_factor = cfg["training"]["layerwise_lr_decay"],
-        weight_decay = cfg["training"]["weight_decay"],
+        base_lr=cfg["training"]["lr"],
+        decay_factor=cfg["training"]["layerwise_lr_decay"],
+        weight_decay=cfg["training"]["weight_decay"],
     )
     optimizer = torch.optim.AdamW(param_groups)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
@@ -115,36 +117,36 @@ def main() -> None:
     # ── WandB ─────────────────────────────────────────────────────────────────
     wandb_cfg = cfg.get("wandb", {})
     logger = WandBLogger(
-        enabled  = wandb_cfg.get("enabled", False) and not debug,
-        project  = wandb_cfg.get("project", "cxr-xai-clinical"),
-        entity   = wandb_cfg.get("entity", None),
-        run_name = f"{model_name}_{'debug' if debug else 'full'}",
-        tags     = wandb_cfg.get("tags", []),
-        config   = {
-            "model":      model_name,
-            "epochs":     epochs,
+        enabled=wandb_cfg.get("enabled", False) and not debug,
+        project=wandb_cfg.get("project", "cxr-xai-clinical"),
+        entity=wandb_cfg.get("entity", None),
+        run_name=f"{model_name}_{'debug' if debug else 'full'}",
+        tags=wandb_cfg.get("tags", []),
+        config={
+            "model": model_name,
+            "epochs": epochs,
             "batch_size": cfg["training"]["batch_size"],
-            "lr":         cfg["training"]["lr"],
-            "debug":      debug,
+            "lr": cfg["training"]["lr"],
+            "debug": debug,
         },
     )
 
     # ── Train ─────────────────────────────────────────────────────────────────
     trainer = Trainer(
-        model           = model,
-        optimizer       = optimizer,
-        scheduler       = scheduler,
-        criterion       = criterion,
-        train_loader    = train_loader,
-        val_loader      = val_loader,
-        device          = device,
-        checkpoint_dir  = cfg["checkpoint_dir"],
-        model_name      = model_name,
-        max_epochs      = epochs,
-        patience        = cfg["training"]["early_stopping_patience"],
-        mixed_precision = cfg["training"]["mixed_precision"],
-        log_interval    = wandb_cfg.get("log_interval", 50),
-        wandb_logger    = logger,
+        model=model,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        criterion=criterion,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        device=device,
+        checkpoint_dir=cfg["checkpoint_dir"],
+        model_name=model_name,
+        max_epochs=epochs,
+        patience=cfg["training"]["early_stopping_patience"],
+        mixed_precision=cfg["training"]["mixed_precision"],
+        log_interval=wandb_cfg.get("log_interval", 50),
+        wandb_logger=logger,
     )
 
     best = trainer.fit()

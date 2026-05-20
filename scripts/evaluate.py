@@ -21,51 +21,49 @@ from typing import Callable
 import numpy as np
 import torch
 import yaml
-from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.data import NIH14Dataset, val_transforms, NIH14_CLASSES
+from src.data import NIH14_CLASSES, NIH14Dataset, val_transforms
+from src.evaluation import (
+    build_summary_row,
+    compute_deletion_insertion,
+    compute_pointing_game,
+    compute_road,
+    compute_sanity_check,
+    compute_spearman_stability,
+    save_summary_table,
+)
 from src.models import build_model
 from src.training import load_checkpoint
 from src.xai import (
+    compute_attention_rollout,
     compute_cam_batch,
     compute_integrated_gradients,
-    compute_attention_rollout,
 )
-from src.evaluation import (
-    compute_pointing_game,
-    compute_deletion_insertion,
-    compute_spearman_stability,
-    compute_sanity_check,
-    compute_road,
-    build_summary_row,
-    save_summary_table,
-)
-
 
 METHOD_DISPLAY = {
-    "gradcam_plus_plus":      "Grad-CAM++",
-    "hirescam":               "HiResCAM",
-    "integrated_gradients":   "Integrated Gradients",
-    "attention_rollout":      "Attention Rollout",
+    "gradcam_plus_plus": "Grad-CAM++",
+    "hirescam": "HiResCAM",
+    "integrated_gradients": "Integrated Gradients",
+    "attention_rollout": "Attention Rollout",
 }
 
 BACKBONE_DISPLAY = {
-    "densenet121":            "DenseNet-121",
-    "vit_base_patch16_224":   "ViT-Base/16",
+    "densenet121": "DenseNet-121",
+    "vit_base_patch16_224": "ViT-Base/16",
 }
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Quantitative XAI evaluation")
-    p.add_argument("--config",      default="configs/train.yaml")
-    p.add_argument("--xai-config",  default="configs/xai.yaml")
-    p.add_argument("--checkpoint",  required=True)
-    p.add_argument("--model",       required=True,
-                   choices=["densenet121", "vit_base_patch16_224"])
-    p.add_argument("--max-images",  type=int, default=200,
-                   help="Images to evaluate (default 200 for speed)")
+    p.add_argument("--config", default="configs/train.yaml")
+    p.add_argument("--xai-config", default="configs/xai.yaml")
+    p.add_argument("--checkpoint", required=True)
+    p.add_argument("--model", required=True, choices=["densenet121", "vit_base_patch16_224"])
+    p.add_argument(
+        "--max-images", type=int, default=200, help="Images to evaluate (default 200 for speed)"
+    )
     return p.parse_args()
 
 
@@ -77,19 +75,24 @@ def _make_heatmap_fn(
     device: str,
 ) -> Callable[[torch.Tensor], np.ndarray]:
     """Return a heatmap_fn(images) → (B,H,W) ndarray closure."""
+
     def fn(images: torch.Tensor) -> np.ndarray:
         if method in ("gradcam_plus_plus", "hirescam"):
             return compute_cam_batch(method, model, images, class_indices, device)
         if method == "integrated_gradients":
             ig_cfg = xai_cfg.get("integrated_gradients", {})
             return compute_integrated_gradients(
-                model, images, class_indices, device,
+                model,
+                images,
+                class_indices,
+                device,
                 n_steps=ig_cfg.get("n_steps", 50),
                 baseline_mode=ig_cfg.get("baseline", "zero"),
             )
         if method == "attention_rollout":
             return compute_attention_rollout(model, images, device)
         raise ValueError(f"Unknown method: {method}")
+
     return fn
 
 
@@ -110,17 +113,18 @@ def main() -> None:
         return
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    model = build_model(model_name, num_classes=cfg["model"]["num_classes"],
-                        pretrained=False).to(device)
+    model = build_model(model_name, num_classes=cfg["model"]["num_classes"], pretrained=False).to(
+        device
+    )
     load_checkpoint(args.checkpoint, model, device=device)
     model.eval()
 
     # ── Dataset (test split) ──────────────────────────────────────────────────
     dataset = NIH14Dataset(
-        image_dir  = cfg["data"]["nih14_images"],
-        labels_csv = cfg["data"]["nih14_labels"],
-        split_file = cfg["data"]["nih14_test_list"],
-        transform  = val_transforms(cfg["input"]["val_size"]),
+        image_dir=cfg["data"]["nih14_images"],
+        labels_csv=cfg["data"]["nih14_labels"],
+        split_file=cfg["data"]["nih14_test_list"],
+        transform=val_transforms(cfg["input"]["val_size"]),
     )
     n = min(args.max_images, len(dataset))
     print(f"[evaluate] model={model_name}  methods={methods}  n_images={n}")
@@ -133,13 +137,11 @@ def main() -> None:
         labels_list.append(lbl)
         fnames.append(Path(path).name)
 
-    images = torch.stack(images_list)          # (N, 3, H, W)
-    labels = torch.stack(labels_list)          # (N, 14)
+    images = torch.stack(images_list)  # (N, 3, H, W)
 
     # Use the first positive class per image as target (fallback: class 0)
     class_indices = [
-        int(lbl.nonzero(as_tuple=True)[0][0]) if lbl.sum() > 0 else 0
-        for lbl in labels_list
+        int(lbl.nonzero(as_tuple=True)[0][0]) if lbl.sum() > 0 else 0 for lbl in labels_list
     ]
 
     summary_rows = []
@@ -150,14 +152,11 @@ def main() -> None:
 
         # ── Generate heatmaps ─────────────────────────────────────────────────
         print("  Generating heatmaps...")
-        heatmaps = heatmap_fn(images)   # (N, H, W)
+        heatmaps = heatmap_fn(images)  # (N, H, W)
 
         # ── Pointing game ─────────────────────────────────────────────────────
         print("  Pointing game...")
-        heatmap_dict = {
-            fnames[i]: {NIH14_CLASSES[class_indices[i]]: heatmaps[i]}
-            for i in range(n)
-        }
+        heatmap_dict = {fnames[i]: {NIH14_CLASSES[class_indices[i]]: heatmaps[i]} for i in range(n)}
         pg_df = compute_pointing_game(
             heatmap_dict,
             cfg["data"]["nih14_bbox"],
@@ -172,7 +171,11 @@ def main() -> None:
         print("  Deletion / Insertion AUC...")
         di_cfg = xai_cfg.get("deletion_insertion", {})
         del_auc, ins_auc = compute_deletion_insertion(
-            model, images, heatmaps, class_indices, device,
+            model,
+            images,
+            heatmaps,
+            class_indices,
+            device,
             n_steps=di_cfg.get("n_steps", 10),
         )
         print(f"    Deletion AUC:  {del_auc.mean():.4f}  Insertion AUC: {ins_auc.mean():.4f}")
@@ -181,7 +184,8 @@ def main() -> None:
         print("  Spearman stability...")
         stab_cfg = xai_cfg.get("stability", {})
         rho = compute_spearman_stability(
-            heatmap_fn, images,
+            heatmap_fn,
+            images,
             noise_std=stab_cfg.get("noise_std", 0.1),
             n_runs=stab_cfg.get("n_runs", 3),
         )
@@ -191,7 +195,11 @@ def main() -> None:
         print("  ROAD faithfulness...")
         road_pcts = xai_cfg.get("road", {}).get("percentages", None)
         road_scores = compute_road(
-            model, images, heatmaps, class_indices, device,
+            model,
+            images,
+            heatmaps,
+            class_indices,
+            device,
             percentages=road_pcts,
         )
         print(f"    ROAD: {road_scores.mean():.4f}")
@@ -199,7 +207,7 @@ def main() -> None:
         # ── Sanity check ──────────────────────────────────────────────────────
         print("  Sanity check (cascading randomization)...")
         # Use a small subset (first 8 images) to keep runtime reasonable
-        subset_imgs    = images[:8]
+        subset_imgs = images[:8]
         subset_classes = class_indices[:8]
 
         def factory(m):
@@ -209,21 +217,23 @@ def main() -> None:
         verdict = "Pass" if sanity["pass"] else "Fail"
         print(f"    Sanity check: {verdict}  (final ρ={sanity['final_rho']:.4f})")
 
-        summary_rows.append(build_summary_row(
-            method        = METHOD_DISPLAY[method],
-            backbone      = BACKBONE_DISPLAY[model_name],
-            pointing_game = pg_acc,
-            deletion_auc  = float(del_auc.mean()),
-            insertion_auc = float(ins_auc.mean()),
-            spearman_rho  = float(rho.mean()),
-            road          = float(road_scores.mean()),
-            sanity_pass   = sanity["pass"],
-        ))
+        summary_rows.append(
+            build_summary_row(
+                method=METHOD_DISPLAY[method],
+                backbone=BACKBONE_DISPLAY[model_name],
+                pointing_game=pg_acc,
+                deletion_auc=float(del_auc.mean()),
+                insertion_auc=float(ins_auc.mean()),
+                spearman_rho=float(rho.mean()),
+                road=float(road_scores.mean()),
+                sanity_pass=sanity["pass"],
+            )
+        )
 
     # ── Save summary table ────────────────────────────────────────────────────
     out_path = Path(cfg["metrics_dir"]) / "xai_comparison_table.csv"
     df = save_summary_table(summary_rows, str(out_path))
-    print(f"\n[evaluate] Done.\n")
+    print("\n[evaluate] Done.\n")
     print(df.to_string(index=False))
 
 

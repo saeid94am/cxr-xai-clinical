@@ -25,8 +25,8 @@ import torch.nn as nn
 
 
 def _nli_replace(
-    images: np.ndarray,       # (B, C, H, W)
-    heatmaps: np.ndarray,     # (B, H, W)
+    images: np.ndarray,  # (B, C, H, W)
+    heatmaps: np.ndarray,  # (B, H, W)
     percentage: float,
     patch_size: int = 9,
 ) -> np.ndarray:
@@ -44,9 +44,9 @@ def _nli_replace(
         for r, c in zip(rows, cols):
             r0, r1 = max(0, r - half), min(H, r + half + 1)
             c0, c1 = max(0, c - half), min(W, c + half + 1)
-            patch = images[i, :, r0:r1, c0:c1]     # (C, ph, pw)
-            mean_val = patch.mean(axis=(1, 2))       # (C,)
-            std_val  = patch.std(axis=(1, 2)) + 1e-8
+            patch = images[i, :, r0:r1, c0:c1]  # (C, ph, pw)
+            mean_val = patch.mean(axis=(1, 2))  # (C,)
+            std_val = patch.std(axis=(1, 2)) + 1e-8
 
             noise = np.random.randn(C) * std_val * 0.1
             result[i, :, r, c] = mean_val + noise
@@ -82,7 +82,7 @@ def compute_road(
         percentages = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 
     model.eval()
-    images_np = images.cpu().numpy()   # (B, C, H, W)
+    images_np = images.cpu().numpy()  # (B, C, H, W)
     B = images.shape[0]
 
     # ── Try quantus first ─────────────────────────────────────────────────────

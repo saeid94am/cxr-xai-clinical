@@ -114,16 +114,24 @@ class Trainer:
             self.wandb_logger.log_epoch(epoch, all_metrics)
 
             save_checkpoint(
-                self.checkpoint_dir, self.model_name,
-                self.model, self.optimizer, self.scheduler,
-                epoch, all_metrics, is_best, self.scaler,
+                self.checkpoint_dir,
+                self.model_name,
+                self.model,
+                self.optimizer,
+                self.scheduler,
+                epoch,
+                all_metrics,
+                is_best,
+                self.scaler,
             )
 
             self._print_epoch(epoch, train_metrics, val_metrics, elapsed, is_best)
 
             if self.epochs_no_improve >= self.patience:
-                print(f"\n[trainer] Early stopping at epoch {epoch} "
-                      f"(no improvement for {self.patience} epochs).")
+                print(
+                    f"\n[trainer] Early stopping at epoch {epoch} "
+                    f"(no improvement for {self.patience} epochs)."
+                )
                 break
 
         self.wandb_logger.finish()
@@ -137,8 +145,12 @@ class Trainer:
             return
         print(f"[trainer] Resuming from {resume_path}")
         ckpt = load_checkpoint(
-            resume_path, self.model, self.optimizer,
-            self.scheduler, self.scaler, self.device,
+            resume_path,
+            self.model,
+            self.optimizer,
+            self.scheduler,
+            self.scaler,
+            self.device,
         )
         self.start_epoch = ckpt["epoch"] + 1
         self.best_auroc = ckpt["metrics"].get("val_auroc_macro", 0.0)
@@ -197,9 +209,7 @@ class Trainer:
         per_class_auroc = []
         for c in range(labels_np.shape[1]):
             if labels_np[:, c].sum() > 0:
-                per_class_auroc.append(
-                    roc_auc_score(labels_np[:, c], probs_np[:, c])
-                )
+                per_class_auroc.append(roc_auc_score(labels_np[:, c], probs_np[:, c]))
 
         macro_auroc = float(np.mean(per_class_auroc)) if per_class_auroc else 0.0
 

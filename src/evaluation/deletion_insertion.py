@@ -33,7 +33,9 @@ def _gaussian_blur_baseline(images: torch.Tensor, kernel_size: int = 51) -> torc
     pad = kernel_size // 2
     blurred = F.avg_pool2d(
         F.pad(images, [pad] * 4, mode="reflect"),
-        kernel_size=kernel_size, stride=1, padding=0,
+        kernel_size=kernel_size,
+        stride=1,
+        padding=0,
     )
     return blurred
 
@@ -63,12 +65,12 @@ def _build_mask(heatmap: np.ndarray, fraction: float, top: bool) -> np.ndarray:
 
 def _score_at_fraction(
     model: nn.Module,
-    images: torch.Tensor,         # (B, 3, H, W)
-    baseline: torch.Tensor,       # (B, 3, H, W)
-    heatmaps: np.ndarray,         # (B, H, W)
+    images: torch.Tensor,  # (B, 3, H, W)
+    baseline: torch.Tensor,  # (B, 3, H, W)
+    heatmaps: np.ndarray,  # (B, H, W)
     class_indices: List[int],
     fraction: float,
-    mode: str,                    # 'deletion' | 'insertion'
+    mode: str,  # 'deletion' | 'insertion'
     device: str,
 ) -> np.ndarray:
     """Return per-image sigmoid scores after masking fraction of pixels."""
@@ -77,7 +79,7 @@ def _score_at_fraction(
 
     for i in range(B):
         mask = _build_mask(heatmaps[i], fraction, top=True)  # (H, W)
-        mask_t = torch.from_numpy(mask).to(device)           # (H, W)
+        mask_t = torch.from_numpy(mask).to(device)  # (H, W)
 
         if mode == "deletion":
             # Remove salient pixels → replace with baseline
@@ -89,11 +91,11 @@ def _score_at_fraction(
             masked[i] = revealed
 
     with torch.no_grad():
-        logits = model(masked.to(device))         # (B, num_classes)
+        logits = model(masked.to(device))  # (B, num_classes)
 
-    probs = torch.sigmoid(logits).cpu().numpy()   # (B, num_classes)
+    probs = torch.sigmoid(logits).cpu().numpy()  # (B, num_classes)
     scores = np.array([probs[i, c] for i, c in enumerate(class_indices)])
-    return scores   # (B,)
+    return scores  # (B,)
 
 
 def compute_deletion_insertion(
@@ -136,7 +138,7 @@ def compute_deletion_insertion(
         )
 
     # AUC via trapezoidal rule over the fraction axis
-    deletion_auc  = np.trapz(del_scores, fractions, axis=0)   # (B,)
-    insertion_auc = np.trapz(ins_scores, fractions, axis=0)   # (B,)
+    deletion_auc = np.trapz(del_scores, fractions, axis=0)  # (B,)
+    insertion_auc = np.trapz(ins_scores, fractions, axis=0)  # (B,)
 
     return deletion_auc, insertion_auc

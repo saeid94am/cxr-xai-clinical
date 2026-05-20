@@ -20,17 +20,17 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.data.dataset import NIH14_CLASSES
 from src.data.transforms import val_transforms
+from src.evaluation.deletion_insertion import compute_deletion_insertion
+from src.evaluation.stability_sanity import compute_spearman_stability
 from src.models import build_model
 from src.training.checkpoint import load_checkpoint
 from src.xai import (
+    compute_attention_rollout,
     compute_cam_batch,
     compute_integrated_gradients,
-    compute_attention_rollout,
 )
-from src.evaluation.deletion_insertion import compute_deletion_insertion
-from src.evaluation.stability_sanity import compute_spearman_stability
-from src.data.dataset import NIH14_CLASSES
 
 # ── Page config ───────────────────────────────────────────────────────────────
 
@@ -45,22 +45,23 @@ st.set_page_config(
 CHECKPOINT_DIR = Path("results/checkpoints")
 MODEL_OPTIONS = {
     "DenseNet-121": "densenet121",
-    "ViT-Base/16":  "vit_base_patch16_224",
+    "ViT-Base/16": "vit_base_patch16_224",
 }
 XAI_METHODS = {
-    "densenet121":          ["Grad-CAM++", "HiResCAM"],
+    "densenet121": ["Grad-CAM++", "HiResCAM"],
     "vit_base_patch16_224": ["Integrated Gradients", "Attention Rollout"],
 }
 METHOD_KEY = {
-    "Grad-CAM++":           "gradcam_plus_plus",
-    "HiResCAM":             "hirescam",
+    "Grad-CAM++": "gradcam_plus_plus",
+    "HiResCAM": "hirescam",
     "Integrated Gradients": "integrated_gradients",
-    "Attention Rollout":    "attention_rollout",
+    "Attention Rollout": "attention_rollout",
 }
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 # ── Model loading (cached) ────────────────────────────────────────────────────
+
 
 @st.cache_resource(show_spinner="Loading model weights…")
 def load_model(model_name: str, checkpoint_path: str):
@@ -71,6 +72,7 @@ def load_model(model_name: str, checkpoint_path: str):
 
 
 # ── Heatmap overlay helper ────────────────────────────────────────────────────
+
 
 def overlay_heatmap(image: np.ndarray, heatmap: np.ndarray, alpha: float = 0.4) -> np.ndarray:
     """Blend a (H,W) saliency map over an RGB image as a jet-coloured overlay."""
@@ -88,7 +90,7 @@ def overlay_heatmap(image: np.ndarray, heatmap: np.ndarray, alpha: float = 0.4) 
 def tensor_to_display(tensor: torch.Tensor) -> np.ndarray:
     """Denormalise a (3,H,W) tensor back to [0,1] RGB for display."""
     mean = np.array([0.485, 0.456, 0.406])
-    std  = np.array([0.229, 0.224, 0.225])
+    std = np.array([0.229, 0.224, 0.225])
     img = tensor.permute(1, 2, 0).numpy()
     img = img * std + mean
     return img.clip(0, 1)
@@ -99,7 +101,7 @@ def tensor_to_display(tensor: torch.Tensor) -> np.ndarray:
 st.sidebar.title("Settings")
 
 model_display = st.sidebar.selectbox("Model", list(MODEL_OPTIONS.keys()))
-model_name    = MODEL_OPTIONS[model_display]
+model_name = MODEL_OPTIONS[model_display]
 
 ckpt_path = CHECKPOINT_DIR / f"best_{model_name}.pt"
 if not ckpt_path.exists():
@@ -111,7 +113,7 @@ else:
     st.sidebar.success(f"Loaded `{ckpt_path.name}`")
 
 available_methods = XAI_METHODS[model_name]
-selected_methods  = st.sidebar.multiselect(
+selected_methods = st.sidebar.multiselect(
     "XAI methods", available_methods, default=available_methods
 )
 
@@ -129,9 +131,7 @@ st.caption(
     "saliency maps with quantitative faithfulness metrics."
 )
 
-uploaded = st.file_uploader(
-    "Upload a chest X-ray (PNG or JPG)", type=["png", "jpg", "jpeg"]
-)
+uploaded = st.file_uploader("Upload a chest X-ray (PNG or JPG)", type=["png", "jpg", "jpeg"])
 
 if uploaded is None:
     st.info("Upload a CXR image to get started.")
@@ -145,22 +145,21 @@ if not model_loaded:
 
 pil_img = Image.open(uploaded).convert("RGB")
 transform = val_transforms(224)
-tensor    = transform(pil_img)                     # (3, 224, 224)
-batch     = tensor.unsqueeze(0)                    # (1, 3, 224, 224)
-display   = tensor_to_display(tensor)              # (224, 224, 3) for display
+tensor = transform(pil_img)  # (3, 224, 224)
+batch = tensor.unsqueeze(0)  # (1, 3, 224, 224)
+display = tensor_to_display(tensor)  # (224, 224, 3) for display
 
 # ── Inference ─────────────────────────────────────────────────────────────────
 
 with torch.no_grad():
-    logits = model(batch.to(DEVICE))               # (1, 14)
-probs = torch.sigmoid(logits).squeeze().cpu().numpy()   # (14,)
+    logits = model(batch.to(DEVICE))  # (1, 14)
+probs = torch.sigmoid(logits).squeeze().cpu().numpy()  # (14,)
 
 # ── Predictions panel ─────────────────────────────────────────────────────────
 
 st.subheader("Predicted Pathologies")
 
-pos_classes = [(NIH14_CLASSES[i], float(probs[i]))
-               for i in range(14) if probs[i] >= conf_threshold]
+pos_classes = [(NIH14_CLASSES[i], float(probs[i])) for i in range(14) if probs[i] >= conf_threshold]
 pos_classes.sort(key=lambda x: x[1], reverse=True)
 
 if pos_classes:
@@ -173,11 +172,14 @@ else:
 
 with st.expander("All class probabilities"):
     import pandas as pd
-    df_probs = pd.DataFrame({
-        "Pathology": NIH14_CLASSES,
-        "Probability": [f"{p:.1%}" for p in probs],
-        "Raw score": [f"{p:.4f}" for p in probs],
-    })
+
+    df_probs = pd.DataFrame(
+        {
+            "Pathology": NIH14_CLASSES,
+            "Probability": [f"{p:.1%}" for p in probs],
+            "Raw score": [f"{p:.4f}" for p in probs],
+        }
+    )
     st.dataframe(df_probs, use_container_width=True)
 
 # ── XAI heatmaps ─────────────────────────────────────────────────────────────
@@ -199,9 +201,7 @@ with st.spinner("Generating heatmaps…"):
         if key in ("gradcam_plus_plus", "hirescam"):
             h = compute_cam_batch(key, model, batch, [target_cls], DEVICE)[0]
         elif key == "integrated_gradients":
-            h = compute_integrated_gradients(
-                model, batch, [target_cls], DEVICE, n_steps=50
-            )[0]
+            h = compute_integrated_gradients(model, batch, [target_cls], DEVICE, n_steps=50)[0]
         else:
             h = compute_attention_rollout(model, batch, DEVICE)[0]
         heatmaps[method_display] = h
@@ -229,7 +229,7 @@ if show_metrics and heatmaps:
 
     metric_rows = []
     first_heatmap = next(iter(heatmaps.values()))
-    heatmap_np = np.stack(list(heatmaps.values()))                  # (M, H, W)
+    heatmap_np = np.stack(list(heatmaps.values()))  # (M, H, W)
     n_methods = len(heatmaps)
     class_indices_rep = [target_cls] * n_methods
 
@@ -257,18 +257,20 @@ if show_metrics and heatmaps:
 
         rho = compute_spearman_stability(heatmap_fn, batch, noise_std=0.1, n_runs=2)
 
-        metric_rows.append({
-            "Method":          method_display,
-            "Deletion AUC ↓":  f"{del_auc[i]:.4f}",
-            "Insertion AUC ↑": f"{ins_auc[i]:.4f}",
-            "Spearman ρ ↑":    f"{rho[0]:.4f}",
-        })
+        metric_rows.append(
+            {
+                "Method": method_display,
+                "Deletion AUC ↓": f"{del_auc[i]:.4f}",
+                "Insertion AUC ↑": f"{ins_auc[i]:.4f}",
+                "Spearman ρ ↑": f"{rho[0]:.4f}",
+            }
+        )
 
     import pandas as pd
+
     st.dataframe(pd.DataFrame(metric_rows), use_container_width=True)
 
 st.divider()
 st.caption(
-    "Model trained on NIH ChestX-ray14. "
-    "Not validated for clinical use. Research prototype only."
+    "Model trained on NIH ChestX-ray14. " "Not validated for clinical use. Research prototype only."
 )

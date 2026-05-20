@@ -11,8 +11,8 @@ import torch
 
 from src.models import CXRClassifier, build_model, get_layerwise_param_groups
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def densenet():
@@ -32,6 +32,7 @@ def dummy_batch():
 
 # ── build_model ───────────────────────────────────────────────────────────────
 
+
 def test_build_model_densenet_returns_classifier():
     m = build_model("densenet121", pretrained=False)
     assert isinstance(m, CXRClassifier)
@@ -48,6 +49,7 @@ def test_build_model_unsupported_raises():
 
 
 # ── CXRClassifier — DenseNet-121 ──────────────────────────────────────────────
+
 
 def test_densenet_output_shape(densenet, dummy_batch):
     densenet.eval()
@@ -82,6 +84,7 @@ def test_densenet_dropout():
 
 # ── CXRClassifier — ViT-Base/16 ───────────────────────────────────────────────
 
+
 def test_vit_output_shape(vit, dummy_batch):
     vit.eval()
     with torch.no_grad():
@@ -98,6 +101,7 @@ def test_vit_num_classes(vit):
 
 
 # ── Layer-wise LR decay ───────────────────────────────────────────────────────
+
 
 def test_densenet_param_groups_lr_ordering(densenet):
     """Outer groups must have higher or equal lr than inner groups."""

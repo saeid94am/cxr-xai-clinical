@@ -6,8 +6,6 @@ to a temporary directory so CI requires no external downloads.
 """
 
 import csv
-import os
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -16,16 +14,16 @@ import torch
 from PIL import Image
 
 from src.data import (
-    NIH14Dataset,
-    CheXpertValDataset,
-    NIH14_CLASSES,
     CHEXPERT_EVAL_CLASSES,
+    NIH14_CLASSES,
+    CheXpertValDataset,
+    NIH14Dataset,
     train_transforms,
     val_transforms,
 )
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 def _make_dummy_png(path: Path, size: int = 64) -> None:
     arr = np.random.randint(0, 256, (size, size, 3), dtype=np.uint8)
@@ -49,11 +47,22 @@ def nih14_tmp(tmp_path: Path):
     csv_path = tmp_path / "Data_Entry_2017.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Image Index", "Finding Labels", "Follow-up #",
-                         "Patient ID", "Patient Age", "Patient Gender",
-                         "View Position", "OriginalImageWidth",
-                         "OriginalImageHeight", "OriginalImagePixelSpacing_x",
-                         "OriginalImagePixelSpacing_y", "Unnamed: 11"])
+        writer.writerow(
+            [
+                "Image Index",
+                "Finding Labels",
+                "Follow-up #",
+                "Patient ID",
+                "Patient Age",
+                "Patient Gender",
+                "View Position",
+                "OriginalImageWidth",
+                "OriginalImageHeight",
+                "OriginalImagePixelSpacing_x",
+                "OriginalImagePixelSpacing_y",
+                "Unnamed: 11",
+            ]
+        )
         for fname, label in zip(filenames, labels):
             writer.writerow([fname, label] + [""] * 10)
 
@@ -61,8 +70,7 @@ def nih14_tmp(tmp_path: Path):
     split_path = tmp_path / "train_val_list.txt"
     split_path.write_text("\n".join(filenames))
 
-    return {"img_dir": str(img_dir), "csv": str(csv_path),
-            "split": str(split_path), "n": n}
+    return {"img_dir": str(img_dir), "csv": str(csv_path), "split": str(split_path), "n": n}
 
 
 @pytest.fixture()
@@ -81,10 +89,11 @@ def chexpert_tmp(tmp_path: Path):
         paths.append(rel)
         row = {"Path": rel}
         for cls in CHEXPERT_EVAL_CLASSES:
-            row[cls] = float(i % 2)   # alternating 0 / 1
+            row[cls] = float(i % 2)  # alternating 0 / 1
         rows.append(row)
 
     import pandas as pd
+
     csv_path = tmp_path / "valid.csv"
     pd.DataFrame(rows).to_csv(csv_path, index=False)
 
@@ -92,6 +101,7 @@ def chexpert_tmp(tmp_path: Path):
 
 
 # ── Transform tests ───────────────────────────────────────────────────────────
+
 
 def test_train_transforms_output_shape():
     t = train_transforms(224)
@@ -116,9 +126,12 @@ def test_val_transforms_deterministic():
 
 # ── NIH14Dataset tests ────────────────────────────────────────────────────────
 
+
 def test_nih14_dataset_length(nih14_tmp):
     ds = NIH14Dataset(
-        nih14_tmp["img_dir"], nih14_tmp["csv"], nih14_tmp["split"],
+        nih14_tmp["img_dir"],
+        nih14_tmp["csv"],
+        nih14_tmp["split"],
         transform=val_transforms(224),
     )
     assert len(ds) == nih14_tmp["n"]
@@ -126,7 +139,9 @@ def test_nih14_dataset_length(nih14_tmp):
 
 def test_nih14_dataset_item_shapes(nih14_tmp):
     ds = NIH14Dataset(
-        nih14_tmp["img_dir"], nih14_tmp["csv"], nih14_tmp["split"],
+        nih14_tmp["img_dir"],
+        nih14_tmp["csv"],
+        nih14_tmp["split"],
         transform=val_transforms(224),
     )
     img, label, path = ds[0]
@@ -138,7 +153,9 @@ def test_nih14_dataset_item_shapes(nih14_tmp):
 
 def test_nih14_dataset_labels_binary(nih14_tmp):
     ds = NIH14Dataset(
-        nih14_tmp["img_dir"], nih14_tmp["csv"], nih14_tmp["split"],
+        nih14_tmp["img_dir"],
+        nih14_tmp["csv"],
+        nih14_tmp["split"],
         transform=val_transforms(224),
     )
     for _, label, _ in ds:
@@ -147,15 +164,20 @@ def test_nih14_dataset_labels_binary(nih14_tmp):
 
 def test_nih14_dataset_subset(nih14_tmp):
     ds = NIH14Dataset(
-        nih14_tmp["img_dir"], nih14_tmp["csv"], nih14_tmp["split"],
-        transform=val_transforms(224), subset_n=5,
+        nih14_tmp["img_dir"],
+        nih14_tmp["csv"],
+        nih14_tmp["split"],
+        transform=val_transforms(224),
+        subset_n=5,
     )
     assert len(ds) == 5
 
 
 def test_nih14_pos_weights_shape(nih14_tmp):
     ds = NIH14Dataset(
-        nih14_tmp["img_dir"], nih14_tmp["csv"], nih14_tmp["split"],
+        nih14_tmp["img_dir"],
+        nih14_tmp["csv"],
+        nih14_tmp["split"],
         transform=val_transforms(224),
     )
     pw = ds.compute_pos_weights()
@@ -165,9 +187,11 @@ def test_nih14_pos_weights_shape(nih14_tmp):
 
 # ── CheXpertValDataset tests ──────────────────────────────────────────────────
 
+
 def test_chexpert_dataset_length(chexpert_tmp):
     ds = CheXpertValDataset(
-        chexpert_tmp["root"], chexpert_tmp["csv"],
+        chexpert_tmp["root"],
+        chexpert_tmp["csv"],
         transform=val_transforms(224),
     )
     assert len(ds) == chexpert_tmp["n"]
@@ -175,7 +199,8 @@ def test_chexpert_dataset_length(chexpert_tmp):
 
 def test_chexpert_dataset_item_shapes(chexpert_tmp):
     ds = CheXpertValDataset(
-        chexpert_tmp["root"], chexpert_tmp["csv"],
+        chexpert_tmp["root"],
+        chexpert_tmp["csv"],
         transform=val_transforms(224),
     )
     img, label, path = ds[0]
@@ -186,13 +211,15 @@ def test_chexpert_dataset_item_shapes(chexpert_tmp):
 def test_chexpert_no_uncertain_labels(chexpert_tmp):
     """Uncertain labels (-1) must be mapped to 0."""
     import pandas as pd
+
     # Inject -1 values into the CSV
     df = pd.read_csv(chexpert_tmp["csv"])
     df[CHEXPERT_EVAL_CLASSES[0]] = -1
     df.to_csv(chexpert_tmp["csv"], index=False)
 
     ds = CheXpertValDataset(
-        chexpert_tmp["root"], chexpert_tmp["csv"],
+        chexpert_tmp["root"],
+        chexpert_tmp["csv"],
         transform=val_transforms(224),
     )
     for _, label, _ in ds:

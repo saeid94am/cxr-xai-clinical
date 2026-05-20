@@ -26,14 +26,14 @@ def build_summary_row(
 ) -> Dict[str, Any]:
     """Build one row dict for the XAI comparison table."""
     return {
-        "XAI Method":      method,
-        "Backbone":        backbone,
-        "Pointing Game ↑": round(pointing_game, 4)  if pointing_game  is not None else None,
-        "Deletion AUC ↓":  round(deletion_auc, 4)   if deletion_auc   is not None else None,
-        "Insertion AUC ↑": round(insertion_auc, 4)  if insertion_auc  is not None else None,
-        "Spearman ρ ↑":    round(spearman_rho, 4)   if spearman_rho   is not None else None,
-        "ROAD ↑":          round(road, 4)            if road           is not None else None,
-        "Sanity Check":    ("Pass" if sanity_pass else "Fail") if sanity_pass is not None else None,
+        "XAI Method": method,
+        "Backbone": backbone,
+        "Pointing Game ↑": round(pointing_game, 4) if pointing_game is not None else None,
+        "Deletion AUC ↓": round(deletion_auc, 4) if deletion_auc is not None else None,
+        "Insertion AUC ↑": round(insertion_auc, 4) if insertion_auc is not None else None,
+        "Spearman ρ ↑": round(spearman_rho, 4) if spearman_rho is not None else None,
+        "ROAD ↑": round(road, 4) if road is not None else None,
+        "Sanity Check": ("Pass" if sanity_pass else "Fail") if sanity_pass is not None else None,
     }
 
 
@@ -51,9 +51,7 @@ def save_summary_table(rows: list[Dict[str, Any]], output_path: str) -> pd.DataF
 
     # Canonical row order matching the paper table
     order = ["Grad-CAM++", "HiResCAM", "Integrated Gradients", "Attention Rollout"]
-    df["_order"] = df["XAI Method"].apply(
-        lambda m: order.index(m) if m in order else len(order)
-    )
+    df["_order"] = df["XAI Method"].apply(lambda m: order.index(m) if m in order else len(order))
     df = df.sort_values("_order").drop(columns="_order").reset_index(drop=True)
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)

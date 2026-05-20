@@ -23,26 +23,29 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.data import NIH14Dataset, val_transforms, NIH14_CLASSES
+from src.data import NIH14_CLASSES, NIH14Dataset, val_transforms
 from src.models import build_model
 from src.training import load_checkpoint
 from src.xai import (
+    compute_attention_rollout,
     compute_cam_batch,
     compute_integrated_gradients,
-    compute_attention_rollout,
 )
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Generate XAI heatmaps")
-    p.add_argument("--config",      default="configs/train.yaml")
-    p.add_argument("--xai-config",  default="configs/xai.yaml")
-    p.add_argument("--checkpoint",  required=True, help="Path to best_<model>.pt")
-    p.add_argument("--model",       required=True,
-                   choices=["densenet121", "vit_base_patch16_224"])
-    p.add_argument("--split",       default="test", choices=["val", "test"])
-    p.add_argument("--max-images",  type=int, default=None,
-                   help="Cap number of images (useful for quick checks)")
+    p.add_argument("--config", default="configs/train.yaml")
+    p.add_argument("--xai-config", default="configs/xai.yaml")
+    p.add_argument("--checkpoint", required=True, help="Path to best_<model>.pt")
+    p.add_argument("--model", required=True, choices=["densenet121", "vit_base_patch16_224"])
+    p.add_argument("--split", default="test", choices=["val", "test"])
+    p.add_argument(
+        "--max-images",
+        type=int,
+        default=None,
+        help="Cap number of images (useful for quick checks)",
+    )
     return p.parse_args()
 
 
@@ -63,7 +66,10 @@ def _compute_heatmap(
     if method == "integrated_gradients":
         ig_cfg = xai_cfg.get("integrated_gradients", {})
         return compute_integrated_gradients(
-            model, images, class_indices, device,
+            model,
+            images,
+            class_indices,
+            device,
             n_steps=ig_cfg.get("n_steps", 50),
             baseline_mode=ig_cfg.get("baseline", "zero"),
         )
@@ -92,19 +98,23 @@ def main() -> None:
     figures_dir = Path(cfg["figures_dir"])
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    model = build_model(model_name, num_classes=cfg["model"]["num_classes"],
-                        pretrained=False).to(device)
+    model = build_model(model_name, num_classes=cfg["model"]["num_classes"], pretrained=False).to(
+        device
+    )
     load_checkpoint(args.checkpoint, model, device=device)
     model.eval()
 
     # ── Dataset ───────────────────────────────────────────────────────────────
-    split_file = (cfg["data"]["nih14_test_list"] if args.split == "test"
-                  else cfg["data"]["nih14_train_val_list"])
+    split_file = (
+        cfg["data"]["nih14_test_list"]
+        if args.split == "test"
+        else cfg["data"]["nih14_train_val_list"]
+    )
     dataset = NIH14Dataset(
-        image_dir  = cfg["data"]["nih14_images"],
-        labels_csv = cfg["data"]["nih14_labels"],
-        split_file = split_file,
-        transform  = val_transforms(cfg["input"]["val_size"]),
+        image_dir=cfg["data"]["nih14_images"],
+        labels_csv=cfg["data"]["nih14_labels"],
+        split_file=split_file,
+        transform=val_transforms(cfg["input"]["val_size"]),
     )
 
     methods = _xai_methods_for(model_name, xai_cfg)
@@ -112,8 +122,10 @@ def main() -> None:
         print(f"[generate_xai] No XAI methods configured for {model_name}. Check xai.yaml.")
         return
 
-    print(f"[generate_xai] model={model_name}  split={args.split}  "
-          f"methods={methods}  n={len(dataset)}")
+    print(
+        f"[generate_xai] model={model_name}  split={args.split}  "
+        f"methods={methods}  n={len(dataset)}"
+    )
 
     # ── Generate per-image, per-class ─────────────────────────────────────────
     max_images = args.max_images or len(dataset)
@@ -131,9 +143,9 @@ def main() -> None:
         for cls_idx in target_classes:
             cls_name = NIH14_CLASSES[cls_idx]
             for method in methods:
-                heatmap = _compute_heatmap(
-                    method, model, image_batch, [cls_idx], xai_cfg, device
-                )[0]  # (H, W)
+                heatmap = _compute_heatmap(method, model, image_batch, [cls_idx], xai_cfg, device)[
+                    0
+                ]  # (H, W)
 
                 out_path = figures_dir / model_name / method / cls_name / f"{stem}.png"
                 if xai_cfg["output"].get("save_heatmaps", True):

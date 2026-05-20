@@ -6,9 +6,7 @@ by `decay_factor` per group, so the backbone bottom trains slowest.
 This is the standard LLRD approach used in CheXNet fine-tuning literature.
 """
 
-from typing import List, Dict, Any
-
-import torch.nn as nn
+from typing import Any, Dict, List
 
 from .classifier import CXRClassifier
 
@@ -85,7 +83,7 @@ def _build_groups(
     param_groups: List[Dict[str, Any]] = []
 
     for g_idx, prefixes in enumerate(groups_names):
-        lr = base_lr * (decay ** g_idx)
+        lr = base_lr * (decay**g_idx)
         params = []
         for name, param in model.named_parameters():
             if any(name.startswith(p) for p in prefixes) and name not in assigned:
@@ -95,9 +93,7 @@ def _build_groups(
             param_groups.append({"params": params, "lr": lr, "weight_decay": wd})
 
     # Catch any remaining parameters (e.g., batch norm biases) at the lowest lr
-    remaining = [
-        p for n, p in model.named_parameters() if n not in assigned
-    ]
+    remaining = [p for n, p in model.named_parameters() if n not in assigned]
     if remaining:
         lr = base_lr * (decay ** len(groups_names))
         param_groups.append({"params": remaining, "lr": lr, "weight_decay": wd})

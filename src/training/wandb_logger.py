@@ -74,6 +74,7 @@ class WandBLogger:
         if not self.enabled or self._run is None:
             return
         import wandb
+
         wandb.watch(model, log="all", log_freq=log_freq)
 
     def finish(self) -> None:

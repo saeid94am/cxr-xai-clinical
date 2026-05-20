@@ -39,8 +39,8 @@ import torch
 import torch.nn as nn
 from scipy.stats import spearmanr
 
-
 # ── Spearman stability ────────────────────────────────────────────────────────
+
 
 def compute_spearman_stability(
     heatmap_fn: Callable[[torch.Tensor], np.ndarray],
@@ -76,7 +76,7 @@ def compute_spearman_stability(
         noisy_heatmaps = heatmap_fn(noisy_images)  # (B, H, W)
 
         for i in range(B):
-            orig_flat  = original_heatmaps[i].ravel()
+            orig_flat = original_heatmaps[i].ravel()
             noisy_flat = noisy_heatmaps[i].ravel()
             rho, _ = spearmanr(orig_flat, noisy_flat)
             rho_runs[run, i] = rho if np.isfinite(rho) else 0.0
@@ -85,6 +85,7 @@ def compute_spearman_stability(
 
 
 # ── Cascading randomization sanity check ─────────────────────────────────────
+
 
 def _get_cascade_layers(model: nn.Module) -> List[Tuple[str, nn.Module]]:
     """Return named layers in reverse order (output→input) for cascading reset.
@@ -172,8 +173,8 @@ def compute_sanity_check(
     passes = is_monotone and (final_rho < 0.5)
 
     return {
-        "rho_curve":   rho_curve,
+        "rho_curve": rho_curve,
         "layer_names": layer_names,
-        "pass":        passes,
-        "final_rho":   final_rho,
+        "pass": passes,
+        "final_rho": final_rho,
     }

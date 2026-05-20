@@ -34,7 +34,7 @@ class CXRClassifier(nn.Module):
         self.backbone = timm.create_model(
             backbone_name,
             pretrained=pretrained,
-            num_classes=0,       # remove the default head
+            num_classes=0,  # remove the default head
         )
         feature_dim = self.backbone.num_features
 

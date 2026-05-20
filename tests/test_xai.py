@@ -10,22 +10,22 @@ import numpy as np
 import pytest
 import torch
 
-from src.models import build_model
-from src.xai import (
-    compute_cam_batch,
-    compute_integrated_gradients,
-    compute_attention_rollout,
-)
 from src.evaluation import (
     compute_deletion_insertion,
-    compute_spearman_stability,
-    compute_sanity_check,
     compute_road,
+    compute_sanity_check,
+    compute_spearman_stability,
 )
 from src.evaluation.pointing_game import pointing_game_hit
-
+from src.models import build_model
+from src.xai import (
+    compute_attention_rollout,
+    compute_cam_batch,
+    compute_integrated_gradients,
+)
 
 # ── Shared fixtures ───────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def densenet():
@@ -55,6 +55,7 @@ def class_indices():
 
 # ── Grad-CAM++ ────────────────────────────────────────────────────────────────
 
+
 def test_gradcam_plus_plus_output_shape(densenet, batch2, class_indices):
     heatmaps = compute_cam_batch("gradcam_plus_plus", densenet, batch2, class_indices)
     assert heatmaps.shape == (2, 224, 224)
@@ -72,6 +73,7 @@ def test_gradcam_plus_plus_not_all_zeros(densenet, batch2, class_indices):
 
 
 # ── HiResCAM ─────────────────────────────────────────────────────────────────
+
 
 def test_hirescam_output_shape(densenet, batch2, class_indices):
     heatmaps = compute_cam_batch("hirescam", densenet, batch2, class_indices)
@@ -91,6 +93,7 @@ def test_cam_dispatch_unknown_raises(densenet, batch2, class_indices):
 
 # ── Integrated Gradients ──────────────────────────────────────────────────────
 
+
 def test_ig_output_shape_densenet(densenet, batch2, class_indices):
     heatmaps = compute_integrated_gradients(
         densenet, batch2, class_indices, device="cpu", n_steps=5
@@ -99,9 +102,7 @@ def test_ig_output_shape_densenet(densenet, batch2, class_indices):
 
 
 def test_ig_output_shape_vit(vit, batch2, class_indices):
-    heatmaps = compute_integrated_gradients(
-        vit, batch2, class_indices, device="cpu", n_steps=5
-    )
+    heatmaps = compute_integrated_gradients(vit, batch2, class_indices, device="cpu", n_steps=5)
     assert heatmaps.shape == (2, 224, 224)
 
 
@@ -115,13 +116,18 @@ def test_ig_range(densenet, batch2, class_indices):
 
 def test_ig_gaussian_baseline(densenet, batch2, class_indices):
     heatmaps = compute_integrated_gradients(
-        densenet, batch2, class_indices, device="cpu",
-        n_steps=5, baseline_mode="gaussian",
+        densenet,
+        batch2,
+        class_indices,
+        device="cpu",
+        n_steps=5,
+        baseline_mode="gaussian",
     )
     assert heatmaps.shape == (2, 224, 224)
 
 
 # ── Attention Rollout ─────────────────────────────────────────────────────────
+
 
 def test_attention_rollout_output_shape(vit, batch2):
     heatmaps = compute_attention_rollout(vit, batch2, device="cpu")
@@ -143,21 +149,22 @@ def test_attention_rollout_not_uniform(vit, batch2):
 
 # ── Pointing game ─────────────────────────────────────────────────────────────
 
+
 def test_pointing_game_hit_inside():
     heatmap = np.zeros((224, 224))
-    heatmap[50, 80] = 1.0        # peak inside bbox
+    heatmap[50, 80] = 1.0  # peak inside bbox
     assert pointing_game_hit(heatmap, bbox=(70, 40, 30, 30)) is True
 
 
 def test_pointing_game_miss_outside():
     heatmap = np.zeros((224, 224))
-    heatmap[10, 10] = 1.0        # peak far outside bbox
+    heatmap[10, 10] = 1.0  # peak far outside bbox
     assert pointing_game_hit(heatmap, bbox=(70, 40, 30, 30)) is False
 
 
 def test_pointing_game_tolerance():
     heatmap = np.zeros((224, 224))
-    heatmap[39, 70] = 1.0        # 1 px above bbox top edge
+    heatmap[39, 70] = 1.0  # 1 px above bbox top edge
     # Without tolerance: miss
     assert pointing_game_hit(heatmap, bbox=(70, 40, 30, 30), tolerance_px=0) is False
     # With tolerance=2: hit
@@ -165,6 +172,7 @@ def test_pointing_game_tolerance():
 
 
 # ── Deletion / Insertion AUC ──────────────────────────────────────────────────
+
 
 def test_deletion_insertion_shapes(densenet, batch2, class_indices):
     heatmaps = compute_cam_batch("gradcam_plus_plus", densenet, batch2, class_indices)
@@ -187,6 +195,7 @@ def test_deletion_insertion_ranges(densenet, batch2, class_indices):
 
 # ── Spearman stability ────────────────────────────────────────────────────────
 
+
 def test_spearman_stability_shape(densenet, batch2, class_indices):
     def heatmap_fn(imgs):
         return compute_cam_batch("gradcam_plus_plus", densenet, imgs, class_indices)
@@ -204,6 +213,7 @@ def test_spearman_stability_range(densenet, batch2, class_indices):
 
 
 # ── Sanity check ──────────────────────────────────────────────────────────────
+
 
 def test_sanity_check_returns_expected_keys(densenet, batch2, class_indices):
     def factory(m):
@@ -226,10 +236,15 @@ def test_sanity_check_rho_curve_starts_at_one(densenet, batch2, class_indices):
 
 # ── ROAD ─────────────────────────────────────────────────────────────────────
 
+
 def test_road_output_shape(densenet, batch2, class_indices):
     heatmaps = compute_cam_batch("gradcam_plus_plus", densenet, batch2, class_indices)
     scores = compute_road(
-        densenet, batch2, heatmaps, class_indices,
-        device="cpu", percentages=[20, 50, 80],
+        densenet,
+        batch2,
+        heatmaps,
+        class_indices,
+        device="cpu",
+        percentages=[20, 50, 80],
     )
     assert scores.shape == (2,)
