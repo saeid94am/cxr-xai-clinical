@@ -1,0 +1,107 @@
+# ─────────────────────────────────────────────────────
+#  CXR-XAI-Clinical  —  Kaggle Training Configuration
+#
+#  Dataset: nih-chest-xrays  (add to notebook as input)
+#  Accelerator: GPU P100 / T4 (16 GB VRAM)
+#
+#  Usage in Kaggle notebook:
+#    !python scripts/train.py --config configs/train_kaggle.yaml --model densenet121
+#    !python scripts/train.py --config configs/train_kaggle.yaml --model vit_base_patch16_224
+# ─────────────────────────────────────────────────────
+
+debug_mode: false
+debug_subset_size: 20000
+debug_epochs: 2
+
+# ── Paths ─────────────────────────────────────────────
+data:
+  # Images are split across images_001..images_012 — cell 3 of the notebook
+  # symlinks them all into /kaggle/working/nih14_images (flat directory).
+  nih14_root:           "/kaggle/input/datasets/organizations/nih-chest-xrays/data"
+  nih14_images:         "/kaggle/working/nih14_images"
+  nih14_labels:         "/kaggle/input/datasets/organizations/nih-chest-xrays/data/Data_Entry_2017.csv"
+  nih14_bbox:           "/kaggle/input/datasets/organizations/nih-chest-xrays/data/BBox_List_2017.csv"
+  nih14_train_val_list: "/kaggle/input/datasets/organizations/nih-chest-xrays/data/train_val_list.txt"
+  nih14_test_list:      "/kaggle/input/datasets/organizations/nih-chest-xrays/data/test_list.txt"
+
+  chexpert_root:      "/kaggle/input/chexpert-v10small"
+  chexpert_valid_csv: "/kaggle/input/chexpert-v10small/CheXpert-v1.0-small/valid.csv"
+
+  rsna_root:   "/kaggle/input/rsna-pneumonia-detection-challenge"
+  rsna_labels: "/kaggle/input/rsna-pneumonia-detection-challenge/stage_2_train_labels.csv"
+
+results_dir:    "/kaggle/working/results"
+checkpoint_dir: "/kaggle/working/results/checkpoints"
+metrics_dir:    "/kaggle/working/results/metrics"
+figures_dir:    "/kaggle/working/results/figures"
+
+# ── WandB ──────────────────────────────────────────────
+wandb:
+  enabled: true
+  project: "cxr-xai-clinical"
+  entity: null
+  tags: ["phase2", "nih14", "kaggle"]
+  log_interval: 50
+
+# ── Model ──────────────────────────────────────────────
+model:
+  name: "densenet121"
+  pretrained: true
+  num_classes: 14
+  dropout: 0.0
+
+# ── Training ───────────────────────────────────────────
+training:
+  seed: 42
+  epochs: 30
+  early_stopping_patience: 5
+  early_stopping_metric: "val_auroc_macro"
+
+  batch_size: 32        # 32 for DenseNet on P100/T4; 16 for ViT
+  num_workers: 4
+  pin_memory: true
+
+  optimizer: "adamw"
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+
+  scheduler: "cosine_warm_restarts"
+  T_0: 10
+
+  layerwise_lr_decay: 0.9
+  mixed_precision: true
+  compile: false
+
+  loss: "bce_with_logits"
+  use_pos_weight: true
+
+# ── Input resolution ───────────────────────────────────
+input:
+  train_size: 224
+  val_size: 224
+  resize: 256
+
+# ── NIH-14 pathology labels (canonical order) ──────────
+nih14_classes:
+  - Atelectasis
+  - Cardiomegaly
+  - Effusion
+  - Infiltration
+  - Mass
+  - Nodule
+  - Pneumonia
+  - Pneumothorax
+  - Consolidation
+  - Edema
+  - Emphysema
+  - Fibrosis
+  - Pleural_Thickening
+  - Hernia
+
+# ── CheXpert 5-class subset for cross-dataset eval ─────
+chexpert_eval_classes:
+  - Atelectasis
+  - Cardiomegaly
+  - Consolidation
+  - Edema
+  - Pleural Effusion

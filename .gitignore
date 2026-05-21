@@ -20,6 +20,7 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
+!notebooks/kaggle_train.ipynb
 
 # Data — never commit raw images or large CSVs
 /data/
