@@ -7,6 +7,7 @@ all calls become no-ops — useful for CI, offline Kaggle runs, or local debug.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 
@@ -82,6 +83,30 @@ class WandBLogger:
         if not self.enabled or self._run is None:
             return
         self._run.finish()
+
+    # ── Checkpoint persistence ────────────────────────────────────────────────
+
+    def upload_checkpoint(self, path: str, artifact_name: str) -> None:
+        """Upload a checkpoint file as a WandB artifact (overwrites :latest)."""
+        if not self.enabled or self._run is None:
+            return
+        import wandb
+
+        artifact = wandb.Artifact(name=artifact_name, type="model")
+        artifact.add_file(path)
+        self._run.log_artifact(artifact)
+
+    def download_checkpoint(self, artifact_name: str, download_dir: str) -> Optional[str]:
+        """Download :latest checkpoint artifact. Returns local .pt path or None."""
+        if not self.enabled or self._run is None:
+            return None
+        try:
+            artifact = self._run.use_artifact(f"{artifact_name}:latest")
+            local_dir = artifact.download(root=download_dir)
+            pts = list(Path(local_dir).glob("*.pt"))
+            return str(pts[0]) if pts else None
+        except Exception:
+            return None
 
     @property
     def run_url(self) -> Optional[str]:

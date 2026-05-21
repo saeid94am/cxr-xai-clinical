@@ -6,13 +6,15 @@ Features:
   - CosineAnnealingWarmRestarts LR schedule
   - Early stopping on val macro-AUROC
   - Saves last_<model>.pt every epoch + best_<model>.pt on improvement
-  - Auto-resumes from last_<model>.pt if it exists
+  - Auto-resumes from last_<model>.pt if it exists, or downloads from WandB artifacts
+  - Uploads last_<model>.pt to WandB artifacts after each epoch for cross-session persistence
   - WandB logging (batch loss/lr + epoch metrics)
 """
 
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -126,6 +128,9 @@ class Trainer:
                 self.scaler,
             )
 
+            last_ckpt = str(Path(self.checkpoint_dir) / f"last_{self.model_name}.pt")
+            self.wandb_logger.upload_checkpoint(last_ckpt, f"last_{self.model_name}")
+
             self._print_epoch(epoch, train_metrics, val_metrics, elapsed, is_best)
 
             if self.epochs_no_improve >= self.patience:
@@ -142,6 +147,15 @@ class Trainer:
 
     def _try_resume(self) -> None:
         resume_path = find_resume_checkpoint(self.checkpoint_dir, self.model_name)
+
+        if resume_path is None:
+            print("[trainer] No local checkpoint found — checking WandB artifacts...")
+            resume_path = self.wandb_logger.download_checkpoint(
+                f"last_{self.model_name}", self.checkpoint_dir
+            )
+            if resume_path:
+                print(f"[trainer] Downloaded checkpoint from WandB: {resume_path}")
+
         if resume_path is None:
             return
         print(f"[trainer] Resuming from {resume_path}")
