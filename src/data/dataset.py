@@ -276,6 +276,7 @@ def build_nih14_loaders(
         shuffle=True,
         num_workers=num_workers,
         pin_memory=True,
+        prefetch_factor=2,
     )
     val_loader = DataLoader(
         val_subset,
@@ -283,6 +284,7 @@ def build_nih14_loaders(
         shuffle=False,
         num_workers=num_workers,
         pin_memory=True,
+        prefetch_factor=2,
     )
     test_loader = DataLoader(
         test_ds,
@@ -290,5 +292,6 @@ def build_nih14_loaders(
         shuffle=False,
         num_workers=num_workers,
         pin_memory=True,
+        prefetch_factor=2,
     )
     return train_loader, val_loader, test_loader
