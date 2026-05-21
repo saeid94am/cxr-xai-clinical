@@ -21,6 +21,7 @@ import torch.nn as nn
 from sklearn.metrics import roc_auc_score
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from .checkpoint import find_resume_checkpoint, load_checkpoint, save_checkpoint
 from .wandb_logger import WandBLogger
@@ -159,7 +160,8 @@ class Trainer:
         self.model.train()
         total_loss = 0.0
 
-        for step, (images, labels, _) in enumerate(self.train_loader):
+        pbar = tqdm(self.train_loader, desc=f"Epoch {epoch:3d} [train]", unit="batch", leave=False)
+        for step, (images, labels, _) in enumerate(pbar):
             images = images.to(self.device, non_blocking=True)
             labels = labels.to(self.device, non_blocking=True)
 
@@ -175,6 +177,7 @@ class Trainer:
 
             total_loss += loss.item()
             self.global_step += 1
+            pbar.set_postfix(loss=f"{loss.item():.4f}")
 
             if self.global_step % self.log_interval == 0:
                 current_lr = self.optimizer.param_groups[0]["lr"]
