@@ -47,7 +47,7 @@ class WandBLogger:
             tags=tags or [],
             config=config or {},
             resume="allow",  # safe to call on a resumed training run
-            dir="/tmp",      # keep wandb logs off the working disk
+            dir="/tmp",  # keep wandb logs off the working disk
         )
 
     # ── Logging ──────────────────────────────────────────────────────────────
