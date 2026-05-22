@@ -21,7 +21,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.metrics import roc_auc_score
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import autocast
+from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -82,6 +83,7 @@ class Trainer:
 
         self.scaler = GradScaler(enabled=mixed_precision)
         self.mixed_precision = mixed_precision
+        self._device_type = device.split(":")[0]  # "cuda" or "cpu"
 
         self.start_epoch: int = 0
         self.best_auroc: float = 0.0
@@ -169,6 +171,7 @@ class Trainer:
         )
         self.start_epoch = ckpt["epoch"] + 1
         self.best_auroc = ckpt["metrics"].get("val_auroc_macro", 0.0)
+        self.global_step = self.start_epoch * len(self.train_loader)
 
     def _train_epoch(self, epoch: int) -> Dict[str, float]:
         self.model.train()
@@ -180,7 +183,7 @@ class Trainer:
             labels = labels.to(self.device, non_blocking=True)
 
             self.optimizer.zero_grad()
-            with autocast(enabled=self.mixed_precision):
+            with autocast(self._device_type, enabled=self.mixed_precision):
                 logits = self.model(images)
                 loss = self.criterion(logits, labels)
 
@@ -211,7 +214,7 @@ class Trainer:
             for images, labels, _ in self.val_loader:
                 images = images.to(self.device, non_blocking=True)
                 labels = labels.to(self.device, non_blocking=True)
-                with autocast(enabled=self.mixed_precision):
+                with autocast(self._device_type, enabled=self.mixed_precision):
                     logits = self.model(images)
                     loss = self.criterion(logits, labels)
                 total_loss += loss.item()
