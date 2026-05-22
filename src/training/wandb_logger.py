@@ -49,35 +49,31 @@ class WandBLogger:
             resume="allow",  # safe to call on a resumed training run
             dir="/tmp",  # keep wandb logs off the working disk
         )
+        # Independent x-axes for batch vs epoch metrics avoids monotonic-step conflicts
+        wandb.define_metric("batch/*", step_metric="batch/step")
+        wandb.define_metric("epoch/*", step_metric="epoch")
 
     # ── Logging ──────────────────────────────────────────────────────────────
 
-    def log(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
-        """Log a dict of scalars. step is the global training step or epoch."""
+    def log(self, metrics: Dict[str, Any]) -> None:
         if not self.enabled or self._run is None:
             return
-        self._run.log(metrics, step=step)
+        self._run.log(metrics)
 
     def log_epoch(self, epoch: int, metrics: Dict[str, Any]) -> None:
-        """Convenience wrapper: prefix all keys with 'epoch/' and log."""
         prefixed = {f"epoch/{k}": v for k, v in metrics.items()}
-        prefixed["epoch"] = epoch
-        self.log(prefixed, step=epoch)
+        prefixed["epoch"] = epoch  # used as x-axis via define_metric
+        self.log(prefixed)
 
     def log_batch(self, step: int, metrics: Dict[str, Any]) -> None:
-        """Log per-batch metrics (loss, lr) keyed under 'batch/'."""
         prefixed = {f"batch/{k}": v for k, v in metrics.items()}
-        self.log(prefixed, step=step)
+        prefixed["batch/step"] = step  # used as x-axis via define_metric
+        self.log(prefixed)
 
     # ── Lifecycle ────────────────────────────────────────────────────────────
 
     def watch(self, model, log_freq: int = 100) -> None:
-        """Attach gradient/parameter histograms to the run."""
-        if not self.enabled or self._run is None:
-            return
-        import wandb
-
-        wandb.watch(model, log="all", log_freq=log_freq)
+        pass  # wandb.watch stalls on resume in Kaggle; metrics logged per epoch are sufficient
 
     def finish(self) -> None:
         """Mark the run as finished (call at end of training)."""
