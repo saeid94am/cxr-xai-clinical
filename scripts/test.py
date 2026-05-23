@@ -116,6 +116,35 @@ def main() -> None:
     print(df.to_string(index=False))
     print(f"\n[test] Macro-AUROC: {macro_auroc:.4f}")
 
+    # ── WandB ─────────────────────────────────────────────────────────────────
+    wandb_cfg = cfg.get("wandb", {})
+    if wandb_cfg.get("enabled", False):
+        try:
+            import wandb
+
+            run = wandb.init(
+                project=wandb_cfg.get("project", "cxr-xai-clinical"),
+                entity=wandb_cfg.get("entity"),
+                name=f"test_{model_name}",
+                job_type="test",
+                config={"model": model_name, "n_test": len(dataset)},
+                dir="/tmp",
+            )
+            log_dict = {
+                f"test/{r['class']}": r["auroc"]
+                for r in rows
+                if r["class"] != "MACRO_AVG" and not np.isnan(r["auroc"])
+            }
+            log_dict["test/macro_auroc"] = macro_auroc
+            wandb.log(log_dict)
+            artifact = wandb.Artifact(f"test_results_{model_name}", type="evaluation")
+            artifact.add_file(str(out_path))
+            run.log_artifact(artifact)
+            run.finish()
+            print("[test] Results logged to WandB.")
+        except Exception as e:
+            print(f"[test] WandB logging failed (results saved locally): {e}")
+
 
 if __name__ == "__main__":
     main()

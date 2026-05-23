@@ -133,6 +133,10 @@ class Trainer:
             last_ckpt = str(Path(self.checkpoint_dir) / f"last_{self.model_name}.pt")
             self.wandb_logger.upload_checkpoint(last_ckpt, f"last_{self.model_name}")
 
+            if is_best:
+                best_ckpt = str(Path(self.checkpoint_dir) / f"best_{self.model_name}.pt")
+                self.wandb_logger.upload_checkpoint(best_ckpt, f"best_{self.model_name}")
+
             self._print_epoch(epoch, train_metrics, val_metrics, elapsed, is_best)
 
             if self.epochs_no_improve >= self.patience:

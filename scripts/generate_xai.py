@@ -155,6 +155,30 @@ def main() -> None:
 
     print(f"[generate_xai] Done. Heatmaps saved to {figures_dir}/")
 
+    # ── WandB artifact upload ─────────────────────────────────────────────────
+    wandb_cfg = cfg.get("wandb", {})
+    if wandb_cfg.get("enabled", False):
+        try:
+            import wandb
+
+            run = wandb.init(
+                project=wandb_cfg.get("project", "cxr-xai-clinical"),
+                entity=wandb_cfg.get("entity"),
+                name=f"xai_heatmaps_{model_name}",
+                job_type="xai_generation",
+                config={"model": model_name, "split": args.split, "methods": methods},
+                dir="/tmp",
+            )
+            artifact = wandb.Artifact(f"heatmaps_{model_name}", type="heatmaps")
+            heatmap_dir = figures_dir / model_name
+            if heatmap_dir.exists():
+                artifact.add_dir(str(heatmap_dir))
+            run.log_artifact(artifact)
+            run.finish()
+            print("[generate_xai] Heatmaps uploaded to WandB.")
+        except Exception as e:
+            print(f"[generate_xai] WandB upload failed (heatmaps saved locally): {e}")
+
 
 if __name__ == "__main__":
     main()

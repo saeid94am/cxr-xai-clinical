@@ -238,6 +238,45 @@ def main() -> None:
     print("\n[evaluate] Done.\n")
     print(df.to_string(index=False))
 
+    # ── WandB ─────────────────────────────────────────────────────────────────
+    wandb_cfg = cfg.get("wandb", {})
+    if wandb_cfg.get("enabled", False):
+        try:
+            import wandb
+
+            run = wandb.init(
+                project=wandb_cfg.get("project", "cxr-xai-clinical"),
+                entity=wandb_cfg.get("entity"),
+                name=f"xai_eval_{model_name}",
+                job_type="xai_evaluation",
+                config={"model": model_name, "n_images": n, "methods": methods},
+                dir="/tmp",
+            )
+            wandb.log({"xai_comparison": wandb.Table(dataframe=df)})
+            for _, row in df.iterrows():
+                method_key = (
+                    row["XAI Method"]
+                    .lower()
+                    .replace(" ", "_")
+                    .replace("/", "_")
+                    .replace("+", "p")
+                )
+                wandb.log({
+                    f"xai/{method_key}/pointing_game": row["Pointing Game ↑"],
+                    f"xai/{method_key}/deletion_auc": row["Deletion AUC ↓"],
+                    f"xai/{method_key}/insertion_auc": row["Insertion AUC ↑"],
+                    f"xai/{method_key}/spearman_rho": row["Spearman ρ ↑"],
+                    f"xai/{method_key}/road": row["ROAD ↑"],
+                    f"xai/{method_key}/sanity_pass": 1.0 if row["Sanity Check"] == "Pass" else 0.0,
+                })
+            artifact = wandb.Artifact(f"xai_results_{model_name}", type="evaluation")
+            artifact.add_file(str(out_path))
+            run.log_artifact(artifact)
+            run.finish()
+            print("[evaluate] Results logged to WandB.")
+        except Exception as e:
+            print(f"[evaluate] WandB logging failed (results saved locally): {e}")
+
 
 if __name__ == "__main__":
     main()
