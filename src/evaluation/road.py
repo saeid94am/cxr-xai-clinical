@@ -30,7 +30,13 @@ def _nli_replace(
     percentage: float,
     patch_size: int = 9,
 ) -> np.ndarray:
-    """Noisy Linear Imputation: replace top-k% pixels with local neighbourhood mean + noise."""
+    """Noisy Linear Imputation: replace top-k% pixels with local neighbourhood mean + noise.
+
+    Uses scipy uniform_filter to compute neighbourhood statistics in one pass
+    per channel rather than iterating over every masked pixel individually.
+    """
+    from scipy.ndimage import uniform_filter
+
     B, C, H, W = images.shape
     result = images.copy()
 
@@ -40,16 +46,13 @@ def _nli_replace(
         top_indices = np.argpartition(flat, -k)[-k:]
         rows, cols = np.unravel_index(top_indices, (H, W))
 
-        half = patch_size // 2
-        for r, c in zip(rows, cols):
-            r0, r1 = max(0, r - half), min(H, r + half + 1)
-            c0, c1 = max(0, c - half), min(W, c + half + 1)
-            patch = images[i, :, r0:r1, c0:c1]  # (C, ph, pw)
-            mean_val = patch.mean(axis=(1, 2))  # (C,)
-            std_val = patch.std(axis=(1, 2)) + 1e-8
-
-            noise = np.random.randn(C) * std_val * 0.1
-            result[i, :, r, c] = mean_val + noise
+        for ch in range(C):
+            ch_img = images[i, ch]
+            local_mean = uniform_filter(ch_img, size=patch_size, mode="reflect")
+            sq_mean = uniform_filter(ch_img**2, size=patch_size, mode="reflect")
+            local_std = np.sqrt(np.maximum(sq_mean - local_mean**2, 0.0)) + 1e-8
+            noise = np.random.randn(len(rows)) * local_std[rows, cols] * 0.1
+            result[i, ch, rows, cols] = local_mean[rows, cols] + noise
 
     return result
 
@@ -61,6 +64,7 @@ def compute_road(
     class_indices: List[int],
     device: str = "cpu",
     percentages: List[float] | None = None,
+    batch_size: int = 32,
 ) -> np.ndarray:
     """Compute ROAD faithfulness score for a batch.
 
@@ -117,22 +121,26 @@ def compute_road(
     # ── Built-in NLI approximation ────────────────────────────────────────────
     score_matrix = np.zeros((len(percentages), B))
 
+    def _batched_predict(tensor: torch.Tensor) -> np.ndarray:
+        """Run model in mini-batches; returns (B, num_classes) sigmoid probs."""
+        all_probs = []
+        for s in range(0, tensor.shape[0], batch_size):
+            chunk = tensor[s : s + batch_size].to(device)
+            with torch.no_grad():
+                logits = model(chunk)
+            all_probs.append(torch.sigmoid(logits).cpu().numpy())
+            torch.cuda.empty_cache()
+        return np.concatenate(all_probs, axis=0)
+
     # Baseline score (no perturbation)
-    with torch.no_grad():
-        base_logits = model(images.to(device))
-    base_probs = torch.sigmoid(base_logits).cpu().numpy()
+    base_probs = _batched_predict(images)
     base_scores = np.array([base_probs[i, c] for i, c in enumerate(class_indices)])
 
     for p_idx, pct in enumerate(percentages):
         perturbed_np = _nli_replace(images_np, heatmaps, pct)
-        perturbed = torch.from_numpy(perturbed_np).float().to(device)
-
-        with torch.no_grad():
-            pert_logits = model(perturbed)
-        pert_probs = torch.sigmoid(pert_logits).cpu().numpy()
+        perturbed = torch.from_numpy(perturbed_np).float()
+        pert_probs = _batched_predict(perturbed)
         pert_scores = np.array([pert_probs[i, c] for i, c in enumerate(class_indices)])
-
-        # Score degradation at this percentage
         score_matrix[p_idx] = base_scores - pert_scores
 
     # ROAD score = mean degradation across percentages (higher = faster drop = more faithful)
