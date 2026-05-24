@@ -65,7 +65,57 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--max-images", type=int, default=200, help="Images to evaluate (default 200 for speed)"
     )
+    p.add_argument(
+        "--xai-batch-size", type=int, default=16, help="Mini-batch size for XAI computation"
+    )
     return p.parse_args()
+
+
+def _compute_heatmap(
+    method: str,
+    model: torch.nn.Module,
+    images: torch.Tensor,
+    class_indices: list[int],
+    xai_cfg: dict,
+    device: str,
+) -> np.ndarray:
+    """Compute heatmaps for a single batch."""
+    if method in ("gradcam_plus_plus", "hirescam"):
+        return compute_cam_batch(method, model, images, class_indices, device)
+    if method == "integrated_gradients":
+        ig_cfg = xai_cfg.get("integrated_gradients", {})
+        return compute_integrated_gradients(
+            model,
+            images,
+            class_indices,
+            device,
+            n_steps=ig_cfg.get("n_steps", 50),
+            baseline_mode=ig_cfg.get("baseline", "zero"),
+        )
+    if method == "attention_rollout":
+        return compute_attention_rollout(model, images, device)
+    raise ValueError(f"Unknown method: {method}")
+
+
+def _compute_heatmaps_batched(
+    method: str,
+    model: torch.nn.Module,
+    images: torch.Tensor,
+    class_indices: list[int],
+    xai_cfg: dict,
+    device: str,
+    batch_size: int,
+) -> np.ndarray:
+    """Compute heatmaps in mini-batches to avoid GPU OOM."""
+    results = []
+    for start in range(0, len(images), batch_size):
+        end = min(start + batch_size, len(images))
+        batch_maps = _compute_heatmap(
+            method, model, images[start:end], class_indices[start:end], xai_cfg, device
+        )
+        results.append(batch_maps)
+        torch.cuda.empty_cache()
+    return np.concatenate(results, axis=0)
 
 
 def _make_heatmap_fn(
@@ -75,24 +125,10 @@ def _make_heatmap_fn(
     xai_cfg: dict,
     device: str,
 ) -> Callable[[torch.Tensor], np.ndarray]:
-    """Return a heatmap_fn(images) → (B,H,W) ndarray closure."""
+    """Return a heatmap_fn(images) → (B,H,W) closure (used by sanity check)."""
 
     def fn(images: torch.Tensor) -> np.ndarray:
-        if method in ("gradcam_plus_plus", "hirescam"):
-            return compute_cam_batch(method, model, images, class_indices, device)
-        if method == "integrated_gradients":
-            ig_cfg = xai_cfg.get("integrated_gradients", {})
-            return compute_integrated_gradients(
-                model,
-                images,
-                class_indices,
-                device,
-                n_steps=ig_cfg.get("n_steps", 50),
-                baseline_mode=ig_cfg.get("baseline", "zero"),
-            )
-        if method == "attention_rollout":
-            return compute_attention_rollout(model, images, device)
-        raise ValueError(f"Unknown method: {method}")
+        return _compute_heatmap(method, model, images, class_indices, xai_cfg, device)
 
     return fn
 
@@ -129,7 +165,10 @@ def main() -> None:
         transform=val_transforms(cfg["input"]["val_size"]),
     )
     n = min(args.max_images, len(dataset))
-    print(f"[evaluate] model={model_name}  methods={methods}  n_images={n}")
+    xai_batch_size: int = args.xai_batch_size
+    print(
+        f"[evaluate] model={model_name}  methods={methods}  n_images={n}  xai_batch={xai_batch_size}"
+    )
 
     # Collect images and labels as a single batch for metric computation
     images_list, labels_list, fnames = [], [], []
@@ -150,11 +189,12 @@ def main() -> None:
 
     for method in methods:
         print(f"\n[evaluate] ── {METHOD_DISPLAY[method]} ──")
-        heatmap_fn = _make_heatmap_fn(method, model, class_indices, xai_cfg, device)
 
-        # ── Generate heatmaps ─────────────────────────────────────────────────
+        # ── Generate heatmaps (batched to avoid OOM) ──────────────────────────
         print("  Generating heatmaps...")
-        heatmaps = heatmap_fn(images)  # (N, H, W)
+        heatmaps = _compute_heatmaps_batched(
+            method, model, images, class_indices, xai_cfg, device, xai_batch_size
+        )  # (N, H, W)
 
         # ── Pointing game ─────────────────────────────────────────────────────
         print("  Pointing game...")
@@ -191,8 +231,12 @@ def main() -> None:
         # ── Spearman stability ────────────────────────────────────────────────
         print("  Spearman stability...")
         stab_cfg = xai_cfg.get("stability", {})
+
+        def _batched_fn(imgs, _m=method, _cls=class_indices):
+            return _compute_heatmaps_batched(_m, model, imgs, _cls, xai_cfg, device, xai_batch_size)
+
         rho = compute_spearman_stability(
-            heatmap_fn,
+            _batched_fn,
             images,
             noise_std=stab_cfg.get("noise_std", 0.1),
             n_runs=stab_cfg.get("n_runs", 3),
