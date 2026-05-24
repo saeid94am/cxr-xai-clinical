@@ -64,3 +64,6 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# interpretations
+interpret/
