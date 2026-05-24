@@ -43,47 +43,31 @@ flowchart LR
 
 ## 2. Results
 
-### 2a. Training setup
+### 2a. Per-pathology AUROC on NIH ChestX-ray14 test set
 
-| Setting | DenseNet-121 | ViT-Base/16 |
-|---|---|---|
-| Optimizer | AdamW | AdamW |
-| Learning rate | 1e-4 | 1e-4 |
-| Weight decay | 1e-5 | 1e-5 |
-| Scheduler | Cosine warm restarts (T₀=10) | Cosine warm restarts (T₀=10) |
-| Batch size | 32 | 16 |
-| Layer-wise LR decay | 0.9 | 0.9 |
-| Mixed precision | Yes | Yes |
-| Loss | BCEWithLogitsLoss + pos\_weight | BCEWithLogitsLoss + pos\_weight |
-| Early stopping patience | 5 | 5 |
-| Best epoch | 16 | 17 |
-| Total epochs trained | 21 | 17 |
-
-### 2b. Per-pathology AUROC on NIH ChestX-ray14 test set
-
-Per-class results are saved to `results/metrics/test_auroc_<model>.csv` and logged as WandB artifacts.
+Bold = higher of the two models per row.
 
 | Pathology | DenseNet-121 | ViT-Base/16 | Wang et al. 2017 |
 |---|---|---|---|
-| Atelectasis | — | — | 0.7003 |
-| Cardiomegaly | — | — | 0.8100 |
-| Effusion | — | — | 0.7585 |
-| Infiltration | — | — | 0.6614 |
-| Mass | — | — | 0.6933 |
-| Nodule | — | — | 0.6687 |
-| Pneumonia | — | — | 0.6580 |
-| Pneumothorax | — | — | 0.7993 |
-| Consolidation | — | — | 0.7032 |
-| Edema | — | — | 0.8052 |
-| Emphysema | — | — | 0.8330 |
-| Fibrosis | — | — | 0.7859 |
-| Pleural Thickening | — | — | 0.6835 |
-| Hernia | — | — | 0.8717 |
-| **Macro AUROC** | **0.790** | **0.783** | **0.745** |
+| Atelectasis | **0.7518** | 0.7455 | 0.7003 |
+| Cardiomegaly | 0.8650 | **0.8687** | 0.8100 |
+| Effusion | **0.8090** | 0.8056 | 0.7585 |
+| Infiltration | 0.6878 | **0.6908** | 0.6614 |
+| Mass | **0.7888** | 0.7701 | 0.6933 |
+| Nodule | **0.7238** | 0.7165 | 0.6687 |
+| Pneumonia | 0.6861 | **0.6922** | 0.6580 |
+| Pneumothorax | **0.8394** | 0.8376 | 0.7993 |
+| Consolidation | 0.7248 | **0.7312** | 0.7032 |
+| Edema | **0.8403** | 0.8396 | 0.8052 |
+| Emphysema | **0.8761** | 0.8538 | 0.8330 |
+| Fibrosis | **0.8150** | 0.8095 | 0.7859 |
+| Pleural Thickening | 0.7415 | **0.7487** | 0.6835 |
+| Hernia | **0.9050** | 0.8549 | 0.8717 |
+| **Macro AUROC** | **0.7896** | 0.7832 | 0.745 |
 
-Both models exceed the Wang et al. (2017) baseline. DenseNet-121 leads on spatially localised findings (Mass, Emphysema, Hernia) while ViT-Base/16 leads on global structural findings (Cardiomegaly, Consolidation), consistent with their respective inductive biases.
+Both models exceed the Wang et al. (2017) baseline on every pathology. DenseNet-121 leads on spatially localised findings (Mass, Emphysema, Nodule, Hernia) while ViT-Base/16 leads on global structural findings (Cardiomegaly, Consolidation, Pleural Thickening, Infiltration, Pneumonia), consistent with their respective inductive biases.
 
-### 2c. XAI comparison table
+### 2b. XAI comparison table
 
 Evaluated on 200 test-set images with `--xai-batch-size 16`. Full results logged to WandB (`xai_eval_densenet121`, `xai_eval_vit_base_patch16_224`) and saved to `results/metrics/xai_comparison_table.csv`.
 
