@@ -130,11 +130,10 @@ def main() -> None:
                 config={"model": model_name, "n_test": len(dataset)},
                 dir="/tmp",
             )
-            log_dict = {
-                f"test/{r['class']}": r["auroc"]
-                for r in rows
-                if r["class"] != "MACRO_AVG" and not np.isnan(r["auroc"])
-            }
+            log_dict = {}
+            for r in rows:
+                if r["class"] != "MACRO_AVG" and not np.isnan(r["auroc"]):
+                    log_dict[f"test/{r['class']}"] = r["auroc"]
             log_dict["test/macro_auroc"] = macro_auroc
             wandb.log(log_dict)
             artifact = wandb.Artifact(f"test_results_{model_name}", type="evaluation")

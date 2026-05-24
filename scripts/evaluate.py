@@ -261,14 +261,15 @@ def main() -> None:
                     .replace("/", "_")
                     .replace("+", "p")
                 )
-                wandb.log({
+                row_metrics = {
                     f"xai/{method_key}/pointing_game": row["Pointing Game ↑"],
                     f"xai/{method_key}/deletion_auc": row["Deletion AUC ↓"],
                     f"xai/{method_key}/insertion_auc": row["Insertion AUC ↑"],
                     f"xai/{method_key}/spearman_rho": row["Spearman ρ ↑"],
                     f"xai/{method_key}/road": row["ROAD ↑"],
                     f"xai/{method_key}/sanity_pass": 1.0 if row["Sanity Check"] == "Pass" else 0.0,
-                })
+                }
+                wandb.log(row_metrics)
             artifact = wandb.Artifact(f"xai_results_{model_name}", type="evaluation")
             artifact.add_file(str(out_path))
             run.log_artifact(artifact)
