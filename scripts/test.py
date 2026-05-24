@@ -85,7 +85,7 @@ def main() -> None:
             all_probs.append(probs)
             all_labels.append(labels.numpy())
 
-    probs_np = np.concatenate(all_probs, axis=0)   # (N, 14)
+    probs_np = np.concatenate(all_probs, axis=0)  # (N, 14)
     labels_np = np.concatenate(all_labels, axis=0)  # (N, 14)
 
     # ── Per-class AUROC ───────────────────────────────────────────────────────

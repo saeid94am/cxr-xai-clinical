@@ -255,11 +255,7 @@ def main() -> None:
             wandb.log({"xai_comparison": wandb.Table(dataframe=df)})
             for _, row in df.iterrows():
                 method_key = (
-                    row["XAI Method"]
-                    .lower()
-                    .replace(" ", "_")
-                    .replace("/", "_")
-                    .replace("+", "p")
+                    row["XAI Method"].lower().replace(" ", "_").replace("/", "_").replace("+", "p")
                 )
                 row_metrics = {
                     f"xai/{method_key}/pointing_game": row["Pointing Game ↑"],
