@@ -165,9 +165,15 @@ def main() -> None:
             img_size=cfg["input"]["val_size"],
             tolerance_px=xai_cfg["pointing_game"].get("tolerance_px", 0),
         )
-        overall_row = pg_df[pg_df["label"] == "OVERALL"]
-        pg_acc = float(overall_row["accuracy"].values[0]) if not overall_row.empty else float("nan")
-        print(f"    Pointing game accuracy: {pg_acc:.4f}")
+        if pg_df.empty or "label" not in pg_df.columns:
+            pg_acc = float("nan")
+            print("    Pointing game: no bbox-annotated images in this sample (nan)")
+        else:
+            overall_row = pg_df[pg_df["label"] == "OVERALL"]
+            pg_acc = (
+                float(overall_row["accuracy"].values[0]) if not overall_row.empty else float("nan")
+            )
+            print(f"    Pointing game accuracy: {pg_acc:.4f}")
 
         # ── Deletion / Insertion AUC ──────────────────────────────────────────
         print("  Deletion / Insertion AUC...")

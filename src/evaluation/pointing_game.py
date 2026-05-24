@@ -157,6 +157,9 @@ def compute_pointing_game(
             {"label": label, "hits": counts["hits"], "total": counts["total"], "accuracy": acc}
         )
 
+    if not rows:
+        return pd.DataFrame(columns=["label", "hits", "total", "accuracy"])
+
     df = pd.DataFrame(rows).sort_values("label").reset_index(drop=True)
 
     if not df.empty:
