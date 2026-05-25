@@ -6,6 +6,11 @@
 > MONAI is not used here because it targets volumetric 3D pipelines; full hook access
 > to intermediate layers is required for Grad-CAM++ and HiResCAM.
 
+[![Lint](https://github.com/saeid94am/cxr-xai-clinical/actions/workflows/lint.yml/badge.svg)](https://github.com/saeid94am/cxr-xai-clinical/actions/workflows/lint.yml)
+[![Tests](https://github.com/saeid94am/cxr-xai-clinical/actions/workflows/test.yml/badge.svg)](https://github.com/saeid94am/cxr-xai-clinical/actions/workflows/test.yml)
+[![Docker Build](https://github.com/saeid94am/cxr-xai-clinical/actions/workflows/docker-build.yml/badge.svg)](https://github.com/saeid94am/cxr-xai-clinical/actions/workflows/docker-build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ---
 
 ## 1. Architecture
