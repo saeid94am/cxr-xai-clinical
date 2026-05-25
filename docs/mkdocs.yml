@@ -1,8 +1,8 @@
 site_name: CXR-XAI-Clinical
 site_description: Explainable AI for Chest X-Ray Pathology Classification
-site_url: https://saeed-amini.github.io/cxr-xai-clinical/
-repo_url: https://github.com/saeed-amini/cxr-xai-clinical
-repo_name: saeed-amini/cxr-xai-clinical
+site_url: https://saeid94am.github.io/cxr-xai-clinical/
+repo_url: https://github.com/saeid94am/cxr-xai-clinical
+repo_name: saeid94am/cxr-xai-clinical
 
 theme:
   name: material
