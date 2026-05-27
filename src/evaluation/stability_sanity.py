@@ -70,7 +70,10 @@ def compute_spearman_stability(
     for run in range(n_runs):
         rng = torch.Generator()
         rng.manual_seed(seed + run)
-        noise = torch.randn(images.shape, generator=rng, dtype=images.dtype, device=images.device) * noise_std
+        noise = (
+            torch.randn(images.shape, generator=rng, dtype=images.dtype, device=images.device)
+            * noise_std
+        )
         noisy_images = (images + noise).clamp(-3.0, 3.0)  # stay in normalised range
 
         noisy_heatmaps = heatmap_fn(noisy_images)  # (B, H, W)
