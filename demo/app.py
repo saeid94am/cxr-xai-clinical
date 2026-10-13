@@ -42,7 +42,7 @@ st.set_page_config(
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-CHECKPOINT_DIR = Path("results/checkpoints")
+CHECKPOINT_DIR = Path(__file__).resolve().parent.parent / "results" / "checkpoints"
 MODEL_OPTIONS = {
     "DenseNet-121": "densenet121",
     "ViT-Base/16": "vit_base_patch16_224",
